@@ -1,0 +1,15 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+
+# OS/editor
+.DS_Store
+.*.swp
+
+# Packaging
+dist/
+build/
+*.egg-info/
+
+# Venv
+.venv

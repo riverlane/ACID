@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "acid"
+version = "0.1.0"
+description = "ACID: Automated Compilation Including Dropouts — stabiliser code compilation with fabrication defects"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "Stasiu Wolanski" }
+]
+dependencies = [
+  "networkx>=2.8",
+  "numpy>=1.22",
+  "ortools",
+  "stim>=1.12",
+  "tqdm>=4.60",
+]
+
+[project.optional-dependencies]
+# No optional extras required currently.
+
+[project.urls]
+Homepage = "https://example.org"
+
+[project.scripts]
+acid-tableau = "acid.tableau_visualiser.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
