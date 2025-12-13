@@ -13,3 +13,5 @@ build/
 
 # Venv
 .venv
+
+paper_ref/
