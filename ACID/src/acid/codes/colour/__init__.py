@@ -7,4 +7,3 @@ __all__ = [
     "in_bounds_square",
     "in_bounds_hex",
 ]
-

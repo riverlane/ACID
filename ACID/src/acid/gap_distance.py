@@ -54,18 +54,28 @@ def compute_nkd_with_gap(
 
     gap_lines: List[str] = []
     gap_lines.append("F := GF(2);")
-    gap_lines.append('if not LoadPackage("QDistRnd") then Error("QDistRnd package not found"); fi;')
+    gap_lines.append(
+        'if not LoadPackage("QDistRnd") then Error("QDistRnd package not found"); fi;'
+    )
     gap_lines.append(f"Hx := {_gap_matrix_literal(Hx)};")
     gap_lines.append(f"Hz := {_gap_matrix_literal(Hz)};")
     # Robust column count even when one side is empty
     gap_lines.append("n := Maximum(NrCols(Hx), NrCols(Hz));")
     gap_lines.append("k := n - RankMat(Hx) - RankMat(Hz);")
-    gap_lines.append(f"d := DistRandCSS(Hz, Hx, {int(trials)}, {int(mindist)}, {int(debug)} : field := F);")
+    gap_lines.append(
+        f"d := DistRandCSS(Hz, Hx, {int(trials)}, {int(mindist)}, {int(debug)} : field := F);"
+    )
     # Print with explicit sentinels to simplify parsing
     # Emit sentinels without embedding literal newlines inside a GAP string
-    gap_lines.append('Print("N=");'); gap_lines.append('Print(n);'); gap_lines.append('Print("\\n");')
-    gap_lines.append('Print("K=");'); gap_lines.append('Print(k);'); gap_lines.append('Print("\\n");')
-    gap_lines.append('Print("D=");'); gap_lines.append('Print(d);'); gap_lines.append('Print("\\n");')
+    gap_lines.append('Print("N=");')
+    gap_lines.append("Print(n);")
+    gap_lines.append('Print("\\n");')
+    gap_lines.append('Print("K=");')
+    gap_lines.append("Print(k);")
+    gap_lines.append('Print("\\n");')
+    gap_lines.append('Print("D=");')
+    gap_lines.append("Print(d);")
+    gap_lines.append('Print("\\n");')
     gap_lines.append("QUIT;")
 
     script = "\n".join(gap_lines)

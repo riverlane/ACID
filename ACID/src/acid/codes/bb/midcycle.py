@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Set, Tuple
+from typing import Dict, Set, Tuple
 
 from acid.codes.bb.algebra import GroupRing, Monomial, Polynomial
 from acid.pauli import StabiliserCode
 
-import numpy as np
 
 
 @dataclass
@@ -32,13 +31,17 @@ class BBMidCycle:
                 assert False
         self.num_qubits = self.l * self.m * 2
 
-    def even_odd_coords(self,a: int, b:int, _c: int) -> int:      
-        return (a*self.homomorphism_f_x+b*self.homomorphism_f_y) % 2
-    
-    def even_odd_monomial(self,g: Monomial) -> int:
-        return self.even_odd_coords(g.a,g.b,0)
+    def even_odd_coords(self, a: int, b: int) -> int:
+        """Return the parity of the coordinates (a, b) under the homomorphism f_x, f_y."""
+        return (a * self.homomorphism_f_x + b * self.homomorphism_f_y) % 2
+
+    def even_odd_monomial(self, g: Monomial) -> int:
+        """Return the parity of the coordinates of a monomial g under the homomorphism f_x, f_y."""
+        return self.even_odd_coords(g.a, g.b)
 
     def stabilizers(self) -> Dict[Tuple[int, int, str], Set[Tuple[int, int, int]]]:
+        """Returns a dictionary mapping each stabilizer (a, b, basis) to its support as a set of
+        qubit coordinates (a, b, c [0 for left, 1 for right])."""
         out: Dict[Tuple[int, int, str], Set[Tuple[int, int, int]]] = {}
         for a in range(self.ring.l):
             for b in range(self.ring.m):
@@ -46,45 +49,47 @@ class BBMidCycle:
                 X_support: Set[Tuple[int, int, int]] = set()
                 for t in self.A:
                     h = t * g
-                    X_support.add((h.a, h.b,0))
+                    X_support.add((h.a, h.b, 0))
                 for t in self.B:
                     h = t * g
-                    X_support.add((h.a, h.b,1))
+                    X_support.add((h.a, h.b, 1))
                 out[(g.a, g.b, "X")] = X_support
                 Z_support: Set[Tuple[int, int, int]] = set()
                 for t in self.B:
                     h = t.inv() * g
-                    Z_support.add((h.a, h.b,0))
+                    Z_support.add((h.a, h.b, 0))
                 for t in self.A:
                     h = t.inv() * g
-                    Z_support.add((h.a, h.b,1))
+                    Z_support.add((h.a, h.b, 1))
                 out[(g.a, g.b, "Z")] = Z_support
         return out
 
     def midcycle_parity_check_matrix(self) -> StabiliserCode:
+        """Return the mid-cycle parity check matrix as a StabiliserCode object."""
         n = self.num_qubits
+
         def qid(a: int, b: int, c: int) -> int:
             a0, b0 = self.ring.canonical(a, b)
             return ((a0 * self.ring.m) + b0) * 2 + (c & 1)
+
         stabs = self.stabilizers()
-        x_keys = [(a, b, basis) for (a, b, basis) in stabs.keys() if basis == 'X']
-        z_keys = [(a, b, basis) for (a, b, basis) in stabs.keys() if basis == 'Z']
+        x_keys = [(a, b, basis) for (a, b, basis) in stabs.keys() if basis == "X"]
+        z_keys = [(a, b, basis) for (a, b, basis) in stabs.keys() if basis == "Z"]
         Hx: list[list[int]] = []
         Hz: list[list[int]] = []
         labels: list[str] = []
         for a, b, _ in sorted(x_keys):
             row = [0] * n
-            for (aa, bb, cc) in stabs[(a, b, 'X')]:
+            for aa, bb, cc in stabs[(a, b, "X")]:
                 row[qid(aa, bb, cc)] ^= 1
             if any(row):
                 Hx.append(row)
                 labels.append(f"X({a},{b})")
         for a, b, _ in sorted(z_keys):
             row = [0] * n
-            for (aa, bb, cc) in stabs[(a, b, 'Z')]:
+            for aa, bb, cc in stabs[(a, b, "Z")]:
                 row[qid(aa, bb, cc)] ^= 1
             if any(row):
                 Hz.append(row)
                 labels.append(f"Z({a},{b})")
         return StabiliserCode(num_qubits=n, row_labels=labels, Hx=Hx, Hz=Hz)
-

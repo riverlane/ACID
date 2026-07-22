@@ -37,11 +37,13 @@ def plan_observables(
                 for t in range(L):
                     Pc = layers[t].propagate(Pmid)
                     S = set(Pc.z_support())
-                    root_map = log.per_layer.get((r, t, 'Z'), {})
-                    root_map_other = log.per_layer.get((r, t, 'X'), {})
+                    root_map = log.per_layer.get((r, t, "Z"), {})
+                    root_map_other = log.per_layer.get((r, t, "X"), {})
                     for q in S:
                         if q in root_map_other:
-                            raise RuntimeError(f"Observable-Z support overlaps X measurement at round={r}, layer={t}, qubit={q}")
+                            raise RuntimeError(
+                                f"Observable-Z support overlaps X measurement at round={r}, layer={t}, qubit={q}"
+                            )
                         if q in root_map:
                             recs.append(int(root_map[q]))
             recs.append(int(anc_rec))
@@ -58,15 +60,16 @@ def plan_observables(
                 for t in range(L):
                     Pc = layers[t].propagate(Pmid)
                     S = set(Pc.x_support())
-                    root_map = log.per_layer.get((r, t, 'X'), {})
-                    root_map_other = log.per_layer.get((r, t, 'Z'), {})
+                    root_map = log.per_layer.get((r, t, "X"), {})
+                    root_map_other = log.per_layer.get((r, t, "Z"), {})
                     for q in S:
                         if q in root_map_other:
-                            raise RuntimeError(f"Observable-X support overlaps Z measurement at round={r}, layer={t}, qubit={q}")
+                            raise RuntimeError(
+                                f"Observable-X support overlaps Z measurement at round={r}, layer={t}, qubit={q}"
+                            )
                         if q in root_map:
                             recs.append(int(root_map[q]))
             recs.append(int(anc_rec))
             obs_x.append(recs)
 
     return obs_z, obs_x
-

@@ -5,14 +5,17 @@ from typing import Iterable, List, Tuple
 from acid.embedding import Embedding
 
 
-def data_bbox_xy(embedding: Embedding, data_ids: Iterable[int]) -> Tuple[float, float, float, float]:
+def data_bbox_xy(
+    embedding: Embedding, data_ids: Iterable[int]
+) -> Tuple[float, float, float, float]:
     """Return (min_x, min_y, max_x, max_y) bbox of given data qubits using embedding coords."""
     xs: List[float] = []
     ys: List[float] = []
     for q in data_ids:
         a, b, c = embedding.id_to_tuple(int(q))
         x, y = embedding.coords(a, b, c)
-        xs.append(float(x)); ys.append(float(y))
+        xs.append(float(x))
+        ys.append(float(y))
     if not xs:
         return 0.0, 0.0, 0.0, 0.0
     return min(xs), min(ys), max(xs), max(ys)
@@ -43,7 +46,8 @@ def place_ancillas_right_of_bbox(
     zeros = [start + 2 * i for i in range(k)]
     plus = [start + 2 * i + 1 for i in range(k)]
     anc_ids = []
-    anc_ids.extend(zeros); anc_ids.extend(plus)
+    anc_ids.extend(zeros)
+    anc_ids.extend(plus)
 
     x0, y0, x1, y1 = data_bbox_xy(embedding, data_ids)
     x_right = x1 + abs(dx)
@@ -56,4 +60,3 @@ def place_ancillas_right_of_bbox(
         coords.append((zeros[i], x_right, y_z))
         coords.append((plus[i], x_right, y_x))
     return zeros, plus, coords
-

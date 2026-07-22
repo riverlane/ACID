@@ -7,6 +7,9 @@ import re
 
 @dataclass(frozen=True)
 class GroupRing:
+    """Represents the group ring Z_l x Z_m, where elements are pairs (a, b) with
+    a in Z_l andb in Z_m."""
+
     l: int
     m: int
 
@@ -54,13 +57,13 @@ class Monomial:
     def __repr__(self) -> str:
         return (
             f'Monomial.from_str("{self.as_string()}", '
-            f'GroupRing({self.ring.l}, {self.ring.m}))'
+            f"GroupRing({self.ring.l}, {self.ring.m}))"
         )
-    
+
     def as_LR_tuple(self, left_right: str):
-        if left_right not in ('L', 'R'):
+        if left_right not in ("L", "R"):
             raise ValueError("left_right must be 'L' or 'R'")
-        return (self.a, self.b, 0 if left_right == 'L' else 1)
+        return (self.a, self.b, 0 if left_right == "L" else 1)
 
 
 @dataclass(frozen=True)
@@ -76,11 +79,15 @@ class Polynomial:
                 raise ValueError("Term ring mismatch")
             key = (t.a, t.b)
             seen[key] = 1 ^ seen.get(key, 0)
-        canonical = frozenset(Monomial(a, b, self.ring) for (a, b), v in seen.items() if v)
+        canonical = frozenset(
+            Monomial(a, b, self.ring) for (a, b), v in seen.items() if v
+        )
         object.__setattr__(self, "terms", canonical)
 
     @staticmethod
-    def from_exponents(exps: Iterable[Tuple[int, int]], ring: GroupRing) -> "Polynomial":
+    def from_exponents(
+        exps: Iterable[Tuple[int, int]], ring: GroupRing
+    ) -> "Polynomial":
         return Polynomial(frozenset(Monomial(a, b, ring) for a, b in exps), ring)
 
     @staticmethod
@@ -127,24 +134,37 @@ class Polynomial:
                 b = (t1.b + t2.b) % self.ring.m
                 key = (a, b)
                 counts[key] = 1 ^ counts.get(key, 0)
-        return Polynomial(frozenset(Monomial(a, b, self.ring) for (a, b), v in counts.items() if v), self.ring)
+        return Polynomial(
+            frozenset(Monomial(a, b, self.ring) for (a, b), v in counts.items() if v),
+            self.ring,
+        )
 
     def left_multiply(self, mono: Monomial) -> "Polynomial":
         if mono.ring != self.ring:
             raise ValueError("Mismatched group rings")
         return Polynomial(
-            frozenset(Monomial(mono.a + t.a, mono.b + t.b, self.ring) for t in self.terms),
+            frozenset(
+                Monomial(mono.a + t.a, mono.b + t.b, self.ring) for t in self.terms
+            ),
             self.ring,
         )
 
     def inverse(self) -> "Polynomial":
-        return Polynomial(frozenset(Monomial((-t.a) % self.ring.l, (-t.b) % self.ring.m, self.ring) for t in self.terms), self.ring)
+        return Polynomial(
+            frozenset(
+                Monomial((-t.a) % self.ring.l, (-t.b) % self.ring.m, self.ring)
+                for t in self.terms
+            ),
+            self.ring,
+        )
 
     def as_string(self) -> str:
         if not self.terms:
             return "0"
         # Deterministic order: by a then b
-        parts = [f"x^{t.a}y^{t.b}" for t in sorted(self.terms, key=lambda t: (t.a, t.b))]
+        parts = [
+            f"x^{t.a}y^{t.b}" for t in sorted(self.terms, key=lambda t: (t.a, t.b))
+        ]
         return "+".join(parts)
 
     def __str__(self) -> str:
@@ -153,5 +173,5 @@ class Polynomial:
     def __repr__(self) -> str:
         return (
             f'Polynomial.from_string("{self.as_string()}", '
-            f'GroupRing({self.ring.l}, {self.ring.m}))'
+            f"GroupRing({self.ring.l}, {self.ring.m}))"
         )

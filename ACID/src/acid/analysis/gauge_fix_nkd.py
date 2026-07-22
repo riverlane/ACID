@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 from itertools import product
-from typing import Dict, List, Tuple, Optional
+from typing import List, Tuple, Optional
 
 from acid.defects.defective_code import DefectiveCode
 from acid.pauli import PauliString, StabiliserCode
@@ -21,7 +21,9 @@ class GaugeFixNKDResult:
     best_d: Optional[int]
 
 
-def _basis_rows_to_Hx_Hz(rows: List[PauliString], n: int) -> Tuple[List[List[int]], List[List[int]]]:
+def _basis_rows_to_Hx_Hz(
+    rows: List[PauliString], n: int
+) -> Tuple[List[List[int]], List[List[int]]]:
     Hx: List[List[int]] = []
     Hz: List[List[int]] = []
     for p in rows:
@@ -134,4 +136,3 @@ def gauge_fixed_nkd(
         best_k=best_k,
         best_d=best_d,
     )
-

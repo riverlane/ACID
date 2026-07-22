@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable, List, Tuple, Dict
+from typing import Iterable, List, Tuple
 
 from acid.gap_distance import compute_nkd_with_gap
 
@@ -37,10 +37,10 @@ class PauliString:
 
     def support(self) -> List[int]:
         return [i for i, b in enumerate(self.X + self.Z) if b & 1]
-    
+
     def z_support(self) -> List[int]:
         return [i for i, b in enumerate(self.Z) if b & 1]
-    
+
     def x_support(self) -> List[int]:
         return [i for i, b in enumerate(self.X) if b & 1]
 
@@ -59,8 +59,8 @@ class PauliString:
         assert self.n == other.n
         acc = 0
         for i in range(self.n):
-            acc ^= (self.X[i] & other.Z[i])
-            acc ^= (self.Z[i] & other.X[i])
+            acc ^= self.X[i] & other.Z[i]
+            acc ^= self.Z[i] & other.X[i]
         return acc & 1
 
     def commutes_with(self, other: "PauliString") -> bool:
@@ -111,7 +111,13 @@ class CommutingPauliBasis:
         return len(idxs), idxs
 
     @staticmethod
-    def from_supports(name: str, priority: int, x_supports: List[List[int]], z_supports: List[List[int]], n: int) -> "CommutingPauliBasis":
+    def from_supports(
+        name: str,
+        priority: int,
+        x_supports: List[List[int]],
+        z_supports: List[List[int]],
+        n: int,
+    ) -> "CommutingPauliBasis":
         # Build PauliStrings then greedily reduce to an independent set
         rows: List[PauliString] = []
         for supp in x_supports:
@@ -170,15 +176,16 @@ class AntiCommutingPauliBasis:
             parts: List[str] = []
             for j in range(kx):
                 if x[j] & 1:
-                    parts.append(f"X{j+1}")
+                    parts.append(f"X{j + 1}")
             for j in range(len(self.Z_rows)):
                 if x[kx + j] & 1:
-                    parts.append(f"Z{j+1}")
+                    parts.append(f"Z{j + 1}")
             desc.append("".join(parts) if parts else "1")
         return desc
 
 
 # CSS/Stabiliser code containers and helpers
+
 
 @dataclass
 class StabiliserCode:
@@ -194,11 +201,24 @@ class StabiliserCode:
     def symplectic(self) -> List[List[int]]:
         return [hx_row + hz_row for hx_row, hz_row in zip(self.Hx, self.Hz)]
 
-    def nkd_via_gap(self, *, gap_exe: str = "gap", trials: int = 1000, mindist: int = 0, debug: int = 1, timeout: int = 300) -> tuple[int, int, int]:
-        n, k, d = compute_nkd_with_gap(self.Hx, self.Hz, gap_exe=gap_exe, trials=trials, mindist=mindist, debug=debug, timeout=timeout)
+    def nkd_via_gap(
+        self,
+        *,
+        gap_exe: str = "gap",
+        trials: int = 1000,
+        mindist: int = 0,
+        debug: int = 1,
+        timeout: int = 300,
+    ) -> tuple[int, int, int]:
+        n, k, d = compute_nkd_with_gap(
+            self.Hx,
+            self.Hz,
+            gap_exe=gap_exe,
+            trials=trials,
+            mindist=mindist,
+            debug=debug,
+            timeout=timeout,
+        )
         return n, k, d
 
-
-
     # Future: add gauges if desired as another AntiCommutingPauliBasis
-

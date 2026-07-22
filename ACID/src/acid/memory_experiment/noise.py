@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Tuple
+from typing import Iterable, List, Tuple
 
 
 class StimBuilderProtocol:
@@ -20,7 +20,9 @@ class NoiseModel:
     on the specified targets.
     """
 
-    def apply_after_gate(self, builder: StimBuilderProtocol, gate: str, targets: List[Tuple[int, ...]]) -> None:
+    def apply_after_gate(
+        self, builder: StimBuilderProtocol, gate: str, targets: List[Tuple[int, ...]]
+    ) -> None:
         """Called after a gate is emitted.
 
         - gate: gate name (e.g., "CX").
@@ -28,14 +30,18 @@ class NoiseModel:
         """
         return None
 
-    def apply_after_reset(self, builder: StimBuilderProtocol, qubits: Iterable[int], *, basis: str = 'Z') -> None:
+    def apply_after_reset(
+        self, builder: StimBuilderProtocol, qubits: Iterable[int], *, basis: str = "Z"
+    ) -> None:
         """Called after a reset line on the given qubits.
 
         basis: 'Z' for R (|0>), 'X' for RX (|+>)
         """
         return None
 
-    def apply_before_measure(self, builder: StimBuilderProtocol, basis: str, qubits_or_terms: Iterable) -> None:
+    def apply_before_measure(
+        self, builder: StimBuilderProtocol, basis: str, qubits_or_terms: Iterable
+    ) -> None:
         """Called immediately before measurement.
 
         - basis: 'X' or 'Z' for MX/MZ; 'PP' for MPP.
@@ -46,6 +52,7 @@ class NoiseModel:
 
 class NoNoiseModel(NoiseModel):
     """No-op noise model."""
+
     pass
 
 
@@ -63,35 +70,44 @@ class DepolarizingNoiseModel(NoiseModel):
 
     MPP currently left noiseless, but can be extended.
     """
-    p1: float = 0.0  # single-qubit flip prob (pre-measure and post-reset; anti-commuting)
+
+    p1: float = (
+        0.0  # single-qubit flip prob (pre-measure and post-reset; anti-commuting)
+    )
     p2: float = 0.0  # two-qubit depolarizing after CX
 
-    def apply_after_gate(self, builder: StimBuilderProtocol, gate: str, targets: List[Tuple[int, ...]]) -> None:
+    def apply_after_gate(
+        self, builder: StimBuilderProtocol, gate: str, targets: List[Tuple[int, ...]]
+    ) -> None:
         if self.p2 <= 0:
             return
         if gate.upper() in ("CX", "CNOT"):
             for c, t in targets:
                 builder.append_line(f"DEPOLARIZE2({self.p2}) {c} {t}")
 
-    def apply_before_measure(self, builder: StimBuilderProtocol, basis: str, qubits_or_terms: Iterable) -> None:
+    def apply_before_measure(
+        self, builder: StimBuilderProtocol, basis: str, qubits_or_terms: Iterable
+    ) -> None:
         if self.p1 <= 0:
             return
         # Apply flips that anti-commute with the measured basis
-        if basis.upper() == 'X':  # MX
+        if basis.upper() == "X":  # MX
             for q in list(qubits_or_terms):
                 builder.append_line(f"Z_ERROR({self.p1}) {int(q)}")
-        elif basis.upper() == 'Z':  # M / MZ
+        elif basis.upper() == "Z":  # M / MZ
             for q in list(qubits_or_terms):
                 builder.append_line(f"X_ERROR({self.p1}) {int(q)}")
         # For 'PP' (MPP), extend if needed.
 
-    def apply_after_reset(self, builder: StimBuilderProtocol, qubits: Iterable[int], *, basis: str = 'Z') -> None:
+    def apply_after_reset(
+        self, builder: StimBuilderProtocol, qubits: Iterable[int], *, basis: str = "Z"
+    ) -> None:
         if self.p1 <= 0:
             return
         # Apply flips that anti-commute with the prepared basis
-        if basis.upper() == 'Z':  # R
+        if basis.upper() == "Z":  # R
             for q in list(qubits):
                 builder.append_line(f"X_ERROR({self.p1}) {int(q)}")
-        elif basis.upper() == 'X':  # RX
+        elif basis.upper() == "X":  # RX
             for q in list(qubits):
                 builder.append_line(f"Z_ERROR({self.p1}) {int(q)}")

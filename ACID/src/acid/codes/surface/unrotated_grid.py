@@ -7,10 +7,15 @@ from acid.base_code import BaseCode, StabiliserShape
 
 
 def _path_template(n: int = 4) -> nx.Graph:
-    G = nx.Graph(); G.add_nodes_from(range(n)); [G.add_edge(i,i+1) for i in range(n-1)]; return G
+    G = nx.Graph()
+    G.add_nodes_from(range(n))
+    [G.add_edge(i, i + 1) for i in range(n - 1)]
+    return G
 
 
-def build_unrotated_surface_grid_code(d: int) -> Tuple[BaseCode, Dict[Tuple[int,int], int]]:
+def build_unrotated_surface_grid_code(
+    d: int,
+) -> Tuple[BaseCode, Dict[Tuple[int, int], int]]:
     """
     Distance-d unrotated surface (grid connectivity):
       - Grid size: (2d-1) x (2d-1), coords in [0..2d-2]
@@ -19,24 +24,32 @@ def build_unrotated_surface_grid_code(d: int) -> Tuple[BaseCode, Dict[Tuple[int,
       - Connectivity: diagonal links between qubits (±1,±1)
     Returns (G, stabs, coord_to_qid) without constructing a Code object.
     """
-    W = 2 * d - 1; H = 2 * d - 1
-    coord_to_qid: Dict[Tuple[int,int], int] = {}
-    qlist: List[Tuple[int,int]] = []
+    W = 2 * d - 1
+    H = 2 * d - 1
+    coord_to_qid: Dict[Tuple[int, int], int] = {}
+    qlist: List[Tuple[int, int]] = []
     qid = 0
     for x in range(W):
         for y in range(H):
             if (x % 2 == 0 and y % 2 == 0) or (x % 2 == 1 and y % 2 == 1):
-                coord_to_qid[(x,y)] = qid; qlist.append((x,y)); qid += 1
+                coord_to_qid[(x, y)] = qid
+                qlist.append((x, y))
+                qid += 1
 
-    def hasq(x:int,y:int)->bool: return (x,y) in coord_to_qid
-    def idq(x:int,y:int)->int: return coord_to_qid[(x,y)]
+    def hasq(x: int, y: int) -> bool:
+        return (x, y) in coord_to_qid
+
+    def idq(x: int, y: int) -> int:
+        return coord_to_qid[(x, y)]
 
     # connectivity: diagonals (undirected)
-    G = nx.Graph(); G.add_nodes_from(range(len(qlist)))
-    for (x,y), q in coord_to_qid.items():
-        for dx,dy in [(-1,-1),(-1,1),(1,-1),(1,1)]:
-            xn,yn = x+dx, y+dy
-            if hasq(xn,yn): G.add_edge(q, idq(xn,yn))
+    G = nx.Graph()
+    G.add_nodes_from(range(len(qlist)))
+    for (x, y), q in coord_to_qid.items():
+        for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+            xn, yn = x + dx, y + dy
+            if hasq(xn, yn):
+                G.add_edge(q, idq(xn, yn))
 
     # Add boundary reinforcement edges along the four borders to ensure
     # local stabiliser connectivity is present at boundaries.
@@ -74,13 +87,13 @@ def build_unrotated_surface_grid_code(d: int) -> Tuple[BaseCode, Dict[Tuple[int,
             d = hasq(x, y - 1)
             l = hasq(x - 1, y)
             # Neighbor list in an order that ensures consecutive pairs are connected
-            if (u and r and d and not l):
+            if u and r and d and not l:
                 order = [(x, y + 1), (x + 1, y), (x, y - 1)]
-            elif (u and r and not d and l):
+            elif u and r and not d and l:
                 order = [(x - 1, y), (x, y + 1), (x + 1, y)]
-            elif (u and not r and d and l):
+            elif u and not r and d and l:
                 order = [(x, y + 1), (x, y - 1), (x - 1, y)]
-            elif (not u and r and d and l):
+            elif not u and r and d and l:
                 order = [(x + 1, y), (x, y - 1), (x - 1, y)]
             else:
                 # Bulk or generic: up, right, down, left filtered
@@ -93,7 +106,7 @@ def build_unrotated_surface_grid_code(d: int) -> Tuple[BaseCode, Dict[Tuple[int,
                     local = nx.cycle_graph(4)
                 else:
                     local = nx.path_graph(3)
-                shapes.append(StabiliserShape('X', local, 2, neigh_ids, f"X({x},{y})"))
+                shapes.append(StabiliserShape("X", local, 2, neigh_ids, f"X({x},{y})"))
 
     # - Z at (odd,even)
     for x in range(1, W, 2):
@@ -102,13 +115,13 @@ def build_unrotated_surface_grid_code(d: int) -> Tuple[BaseCode, Dict[Tuple[int,
             r = hasq(x + 1, y)
             d = hasq(x, y - 1)
             l = hasq(x - 1, y)
-            if (u and r and d and not l):
+            if u and r and d and not l:
                 order = [(x, y + 1), (x + 1, y), (x, y - 1)]
-            elif (u and r and not d and l):
+            elif u and r and not d and l:
                 order = [(x - 1, y), (x, y + 1), (x + 1, y)]
-            elif (u and not r and d and l):
+            elif u and not r and d and l:
                 order = [(x, y + 1), (x, y - 1), (x - 1, y)]
-            elif (not u and r and d and l):
+            elif not u and r and d and l:
                 order = [(x + 1, y), (x, y - 1), (x - 1, y)]
             else:
                 order = [(x, y + 1), (x + 1, y), (x, y - 1), (x - 1, y)]
@@ -119,7 +132,7 @@ def build_unrotated_surface_grid_code(d: int) -> Tuple[BaseCode, Dict[Tuple[int,
                     local = nx.cycle_graph(4)
                 else:
                     local = nx.path_graph(3)
-                shapes.append(StabiliserShape('Z', local, 2, neigh_ids, f"Z({x},{y})"))
+                shapes.append(StabiliserShape("Z", local, 2, neigh_ids, f"Z({x},{y})"))
 
     base = BaseCode(num_qubits=len(qlist), connectivity_graph=G, shapes=shapes)
     base.validate_local_connectivity()

@@ -13,6 +13,7 @@ class StimBuilder:
     - Tracks current measurement count to resolve rec[-k] offsets at DETECTOR/OBS lines.
     - Provides helpers to append operations and get rec indices.
     """
+
     lines: List[str]
     _rec_count: int = 0
     _tick_count: int = 0
@@ -105,4 +106,3 @@ class StimBuilder:
         rels = [-(self._rec_count - ri) for ri in rec_indices]
         parts = [f"rec[{r}]" for r in rels]
         self.append_line(f"OBSERVABLE_INCLUDE({int(obs_index)}) " + " ".join(parts))
-

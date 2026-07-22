@@ -15,9 +15,9 @@ class DetectorRegistry:
     def add(self, info: DetectorInfo) -> None:
         det_id = info.id
         self.detectors.append(info)
-        if info.kind == 'quasi':
+        if info.kind == "quasi":
             self.by_quasi.setdefault(info.label, []).append(det_id)
-        elif info.kind == 'product':
+        elif info.kind == "product":
             self.by_product.setdefault(info.label, []).append(det_id)
 
     def get_detector(self, det_id: int) -> Optional[DetectorInfo]:

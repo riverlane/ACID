@@ -5,7 +5,7 @@ from typing import List, Literal
 
 from ..gf2_utils import gf2_rank
 
-PauliKind = Literal['stabiliser', 'gauge', 'logical']
+PauliKind = Literal["stabiliser", "gauge", "logical"]
 
 
 @dataclass
@@ -18,7 +18,9 @@ class PauliBasis:
     def validate(self, n: int) -> None:
         for r in self.rows:
             if len(r) != 2 * n:
-                raise ValueError(f"Basis {self.name} has row with wrong length (expected {2*n})")
+                raise ValueError(
+                    f"Basis {self.name} has row with wrong length (expected {2 * n})"
+                )
         # Check linear independence (not strictly required, but recommended)
         if gf2_rank(self.rows) != len(self.rows):
             raise ValueError(f"Basis {self.name} rows are not linearly independent")
@@ -30,18 +32,18 @@ def pauli_to_bin_row(pauli: str) -> List[int]:
     Ignores the sign and underscores. Y -> X=1, Z=1.
     """
     s = pauli.strip()
-    if s and s[0] in '+-':
+    if s and s[0] in "+-":
         s = s[1:]
-    qubits = [c for c in s if c in 'XYZI_']
+    qubits = [c for c in s if c in "XYZI_"]
     n = len(qubits)
     X = [0] * n
     Z = [0] * n
     for i, c in enumerate(qubits):
-        if c == 'X':
+        if c == "X":
             X[i] = 1
-        elif c == 'Z':
+        elif c == "Z":
             Z[i] = 1
-        elif c == 'Y':
+        elif c == "Y":
             X[i] = 1
             Z[i] = 1
         else:
@@ -69,5 +71,6 @@ def default_single_qubit_basis(n: int) -> PauliBasis:
         Z = [0] * n
         X[i] = 1
         rows.append(X + Z)
-    return PauliBasis(name="Single Qubit Paulis", kind='stabiliser', priority=0, rows=rows)
-
+    return PauliBasis(
+        name="Single Qubit Paulis", kind="stabiliser", priority=0, rows=rows
+    )

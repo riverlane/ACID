@@ -18,20 +18,24 @@ def in_bounds_hex(d: int, x: int, y: int) -> bool:
 
 
 def _path_graph(n: int) -> nx.Graph:
-    G = nx.Graph(); G.add_nodes_from(range(n))
+    G = nx.Graph()
+    G.add_nodes_from(range(n))
     for i in range(n - 1):
         G.add_edge(i, i + 1)
     return G
 
 
 def _cycle_graph(n: int) -> nx.Graph:
-    G = nx.Graph(); G.add_nodes_from(range(n))
+    G = nx.Graph()
+    G.add_nodes_from(range(n))
     for i in range(n):
         G.add_edge(i, (i + 1) % n)
     return G
 
 
-def build_colour_hex_code(d: int, *, deg4: bool = False) -> Tuple[BaseCode, Dict[Tuple[int, int], int]]:
+def build_colour_hex_code(
+    d: int, *, deg4: bool = False
+) -> Tuple[BaseCode, Dict[Tuple[int, int], int]]:
     """Colour code on a d x (3/2)(d-1) lattice built from explicit stabiliser shapes.
 
     Shapes and placement follow the specification:
@@ -56,6 +60,7 @@ def build_colour_hex_code(d: int, *, deg4: bool = False) -> Tuple[BaseCode, Dict
 
     # Coordinate registry built on demand while placing shapes
     coords: Dict[Tuple[int, int], int] = {}
+
     def in_dom(x: int, y: int) -> bool:
         return 0 <= x <= d - 1 and 0 <= y <= H
 
@@ -70,22 +75,29 @@ def build_colour_hex_code(d: int, *, deg4: bool = False) -> Tuple[BaseCode, Dict
 
     shapes: List[StabiliserShape] = []
 
-    def add_shape(label: str, nodes_xy: List[Tuple[int, int]], edges_pairs: List[Tuple[int, int]], sec_len: int = 3) -> None:
+    def add_shape(
+        label: str,
+        nodes_xy: List[Tuple[int, int]],
+        edges_pairs: List[Tuple[int, int]],
+        sec_len: int = 3,
+    ) -> None:
         # Skip if any node is out of domain
         if any(not in_dom(x, y) for (x, y) in nodes_xy):
             return
         # Local indexing
-        local_index = {xy: i for i, xy in enumerate(nodes_xy)}
+        {xy: i for i, xy in enumerate(nodes_xy)}
         # Ensure qubits and add edges to global graph
         qmap = [ensure_qid(x, y) for (x, y) in nodes_xy]
-        for (ai, bi) in edges_pairs:
-            qa = qmap[ai]; qb = qmap[bi]
+        for ai, bi in edges_pairs:
+            qa = qmap[ai]
+            qb = qmap[bi]
             if qa == qb:
                 continue
             G.add_edge(qa, qb)
         # Build local connectivity graph
-        LG = nx.Graph(); LG.add_nodes_from(range(len(nodes_xy)))
-        for (ai, bi) in edges_pairs:
+        LG = nx.Graph()
+        LG.add_nodes_from(range(len(nodes_xy)))
+        for ai, bi in edges_pairs:
             LG.add_edge(ai, bi)
         # Preferences:
         # - Preferred edges are exactly those not added by the 'deg4' rung (edge between local nodes 1 and 4).
@@ -95,9 +107,11 @@ def build_colour_hex_code(d: int, *, deg4: bool = False) -> Tuple[BaseCode, Dict
         pref_roots = None
         if len(nodes_xy) == 6:
             # Determine if the deg4 rung (1,4) is present; exclude it from preferred edges if so.
-            rung_present = any(((a == 1 and b == 4) or (a == 4 and b == 1)) for (a, b) in edges_pairs)
+            rung_present = any(
+                ((a == 1 and b == 4) or (a == 4 and b == 1)) for (a, b) in edges_pairs
+            )
             pe: dict[Tuple[int, int], None] = {}
-            for (ai, bi) in edges_pairs:
+            for ai, bi in edges_pairs:
                 u, v = (ai, bi) if ai <= bi else (bi, ai)
                 if rung_present and (u, v) == (1, 4):
                     continue
@@ -109,8 +123,28 @@ def build_colour_hex_code(d: int, *, deg4: bool = False) -> Tuple[BaseCode, Dict
             y0 = nodes_xy[0][1]
             pref_roots = [2] if (y0 % 2 == 1) else [5]
         # Emit both X and Z stabilisers with preferences (if any)
-        shapes.append(StabiliserShape('X', LG, sec_len, qmap, f"{label}X", preferred_roots=pref_roots, preferred_edges=pref_edges))
-        shapes.append(StabiliserShape('Z', LG, sec_len, qmap, f"{label}Z", preferred_roots=pref_roots, preferred_edges=pref_edges))
+        shapes.append(
+            StabiliserShape(
+                "X",
+                LG,
+                sec_len,
+                qmap,
+                f"{label}X",
+                preferred_roots=pref_roots,
+                preferred_edges=pref_edges,
+            )
+        )
+        shapes.append(
+            StabiliserShape(
+                "Z",
+                LG,
+                sec_len,
+                qmap,
+                f"{label}Z",
+                preferred_roots=pref_roots,
+                preferred_edges=pref_edges,
+            )
+        )
 
     # 1) Basic hex rectangles
     # Base placements constrained by y <= min(3x-2, -3x + (3d-7)) with x in [0..d-1]
@@ -122,7 +156,14 @@ def build_colour_hex_code(d: int, *, deg4: bool = False) -> Tuple[BaseCode, Dict
             # Families: (2i,2j) i.e. x even, y even; and (2i-1,2j+1) i.e. x odd, y odd
             if (x % 2 == 0 and y % 2 == 0) or (x % 2 == 1 and y % 2 == 1):
                 # Node order around the rectangle perimeter
-                pts = [(x, y), (x, y + 1), (x, y + 2), (x + 1, y + 2), (x + 1, y + 1), (x + 1, y)]
+                pts = [
+                    (x, y),
+                    (x, y + 1),
+                    (x, y + 2),
+                    (x + 1, y + 2),
+                    (x + 1, y + 1),
+                    (x + 1, y),
+                ]
                 # 6-cycle edges
                 cyc_edges = [(i, (i + 1) % 6) for i in range(6)]
                 # Optional deg4 rung: (x,y+1)-(x+1,y+1) corresponds to indices 1 and 4
@@ -133,11 +174,18 @@ def build_colour_hex_code(d: int, *, deg4: bool = False) -> Tuple[BaseCode, Dict
 
     # Extra rectangle stabs
     r_extra_max = (d - 3) // 4
-    parity_adjust = (d % 4 == 1)
+    parity_adjust = d % 4 == 1
     for i in range(0, max(r_extra_max, -1) + 1):
         # Left extras: (2i+1, 6i+3)
         x, y = 2 * i + 1, 6 * i + 3
-        pts = [(x, y), (x, y + 1), (x, y + 2), (x + 1, y + 2), (x + 1, y + 1), (x + 1, y)]
+        pts = [
+            (x, y),
+            (x, y + 1),
+            (x, y + 2),
+            (x + 1, y + 2),
+            (x + 1, y + 1),
+            (x + 1, y),
+        ]
         edges = [(i2, (i2 + 1) % 6) for i2 in range(6)]
         if deg4:
             edges.append((1, 4))
@@ -146,20 +194,38 @@ def build_colour_hex_code(d: int, *, deg4: bool = False) -> Tuple[BaseCode, Dict
         if not parity_adjust:
             # Default placement: (d - 2i - 2, 6i + 1)
             x2, y2 = d - 2 * i - 2, 6 * i + 1
-            pts2 = [(x2, y2), (x2, y2 + 1), (x2, y2 + 2), (x2 + 1, y2 + 2), (x2 + 1, y2 + 1), (x2 + 1, y2)]
+            pts2 = [
+                (x2, y2),
+                (x2, y2 + 1),
+                (x2, y2 + 2),
+                (x2 + 1, y2 + 2),
+                (x2 + 1, y2 + 1),
+                (x2 + 1, y2),
+            ]
             edges2 = [(i2, (i2 + 1) % 6) for i2 in range(6)]
             if deg4:
                 edges2.append((1, 4))
-            add_shape(label=f"hex_extraB({x2},{y2})/", nodes_xy=pts2, edges_pairs=edges2)
+            add_shape(
+                label=f"hex_extraB({x2},{y2})/", nodes_xy=pts2, edges_pairs=edges2
+            )
         else:
             # Adjusted placement for d % 4 == 1: (d - 2i - 3, 6i + 4) for i = 0 .. d//4 - 1
             if i <= (d // 4 - 1):
                 x2, y2 = d - 2 * i - 3, 6 * i + 4
-                pts2 = [(x2, y2), (x2, y2 + 1), (x2, y2 + 2), (x2 + 1, y2 + 2), (x2 + 1, y2 + 1), (x2 + 1, y2)]
+                pts2 = [
+                    (x2, y2),
+                    (x2, y2 + 1),
+                    (x2, y2 + 2),
+                    (x2 + 1, y2 + 2),
+                    (x2 + 1, y2 + 1),
+                    (x2 + 1, y2),
+                ]
                 edges2 = [(i2, (i2 + 1) % 6) for i2 in range(6)]
                 if deg4:
                     edges2.append((1, 4))
-                add_shape(label=f"hex_extraB({x2},{y2})/", nodes_xy=pts2, edges_pairs=edges2)
+                add_shape(
+                    label=f"hex_extraB({x2},{y2})/", nodes_xy=pts2, edges_pairs=edges2
+                )
 
     # 2) Left triangles: 4-node path (x,y)->(x+1,y)->(x+1,y+1)->(x+1,y+2)
     lt_max = (d + 1) // 4

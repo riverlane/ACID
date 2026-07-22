@@ -20,7 +20,12 @@ def _summary(nums: List[int]) -> Dict[str, float]:
     n = len(a)
     mid = a[n // 2] if (n % 2) == 1 else (0.5 * (a[n // 2 - 1] + a[n // 2]))
     s = sum(a)
-    return {"min": float(a[0]), "max": float(a[-1]), "median": float(mid), "mean": float(s) / float(n)}
+    return {
+        "min": float(a[0]),
+        "max": float(a[-1]),
+        "median": float(mid),
+        "mean": float(s) / float(n),
+    }
 
 
 def prune_schedule_graph(
@@ -57,7 +62,11 @@ def prune_schedule_graph(
     for stab in scheduling_graph.nodes():
         lab = getattr(stab, "label")
         tmpl = getattr(stab, "stabiliser_template")
-        pref = set(i for i, sch in enumerate(tmpl.schedules) if getattr(sch, "preferred", False))
+        pref = set(
+            i
+            for i, sch in enumerate(tmpl.schedules)
+            if getattr(sch, "preferred", False)
+        )
         preferred_ids[lab] = pref
 
     # Keep sets per label
@@ -68,7 +77,9 @@ def prune_schedule_graph(
         target = min(M, K)
         pref = preferred_ids.get(lab, set())
         if len(pref) > target:
-            raise RuntimeError(f"Preferred schedules ({len(pref)}) exceed M={target} for stabiliser {lab}")
+            raise RuntimeError(
+                f"Preferred schedules ({len(pref)}) exceed M={target} for stabiliser {lab}"
+            )
         if K <= target:
             kept[lab] = set(range(K))
         else:
@@ -76,30 +87,38 @@ def prune_schedule_graph(
         preferred_total += len(pref)
 
     if preferred_total == 0 and verbose:
-        print("[prune] warning: no preferred schedules marked across the schedule graph")
+        print(
+            "[prune] warning: no preferred schedules marked across the schedule graph"
+        )
 
     # Precompute neighbor compatibility maps for scoring
     from collections import defaultdict
+
     map_out: Dict[object, Dict[str, Dict[int, Set[int]]]] = {}
     map_in: Dict[object, Dict[str, Dict[int, Set[int]]]] = {}
 
-    node_by_label: Dict[str, object] = {getattr(stab, "label"): stab for stab in scheduling_graph.nodes()}
+    node_by_label: Dict[str, object] = {
+        getattr(stab, "label"): stab for stab in scheduling_graph.nodes()
+    }
     it_edges = scheduling_graph.edges(data=True)
     if verbose:
         try:
             from tqdm import tqdm  # type: ignore
-            it_edges = tqdm(list(it_edges), desc="[prune] build compat maps", leave=False)
+
+            it_edges = tqdm(
+                list(it_edges), desc="[prune] build compat maps", leave=False
+            )
         except Exception:
             pass
     for u, v, data in it_edges:
         allowed = set(data.get("allowed_pairs") or [])
         u_map = map_out.setdefault(u, {})
         mout = u_map.setdefault(getattr(v, "label"), defaultdict(set))
-        for (ku, kv) in allowed:
+        for ku, kv in allowed:
             mout[int(ku)].add(int(kv))
         v_map_in = map_in.setdefault(v, {})
         minv = v_map_in.setdefault(getattr(u, "label"), defaultdict(set))
-        for (ku, kv) in allowed:
+        for ku, kv in allowed:
             minv[int(kv)].add(int(ku))
 
     # Scoring and fill for labels where K > M
@@ -107,6 +126,7 @@ def prune_schedule_graph(
     if verbose:
         try:
             from tqdm import tqdm  # type: ignore
+
             it_labels = list(it_labels)
             it_labels = tqdm(it_labels, desc="[prune] score+fill labels", leave=False)
         except Exception:
@@ -158,7 +178,9 @@ def prune_schedule_graph(
         allowed = set(data.get("allowed_pairs") or [])
         u_lab = getattr(u, "label")
         v_lab = getattr(v, "label")
-        filt = {(ku, kv) for (ku, kv) in allowed if ku in kept[u_lab] and kv in kept[v_lab]}
+        filt = {
+            (ku, kv) for (ku, kv) in allowed if ku in kept[u_lab] and kv in kept[v_lab]
+        }
         G2.add_edge(u, v, allowed_pairs=filt)
 
     counts_list = [K_by_label[lab] for lab in labels]
@@ -166,7 +188,9 @@ def prune_schedule_graph(
     stats: Dict[str, object] = {
         "schedule_counts_by_label": {lab: K_by_label[lab] for lab in labels},
         "schedule_counts_summary": _summary(counts_list),
-        "preferred_count_by_label": {lab: int(len(preferred_ids.get(lab, set()))) for lab in labels},
+        "preferred_count_by_label": {
+            lab: int(len(preferred_ids.get(lab, set()))) for lab in labels
+        },
         "preferred_counts_summary": _summary(preferred_counts),
         "selected_count_by_label": {lab: int(len(kept[lab])) for lab in labels},
         "params": {"M": int(M)},

@@ -14,9 +14,9 @@ from .schedule_index import ScheduleIndex
 @dataclass
 class DetectorInfo:
     id: int
-    kind: str              # 'quasi' | 'product'
+    kind: str  # 'quasi' | 'product'
     label: str
-    basis: Optional[str]   # 'X' | 'Z' for quasi; None for product
+    basis: Optional[str]  # 'X' | 'Z' for quasi; None for product
     start: Dict[str, object]
     end: Dict[str, object]
     intervening: List[Tuple[int, int]] = field(default_factory=list)
@@ -46,24 +46,27 @@ def plan_quasi_detectors(
     n = dcode.base_code.num_qubits
 
     for lab in dcode.quasi_labels:  # type: ignore[attr-defined]
+        # dont include if filtered out or basis not included
         if filter_labels is not None and lab not in filter_labels:
             continue
         basis = sched.basis_of[lab]
-        if (basis == 'X' and not include_x) or (basis == 'Z' and not include_z):
+        if (basis == "X" and not include_x) or (basis == "Z" and not include_z):
             continue
         # Mid-cycle PauliString for this quasi
         typ, supp = dcode.quasi_support(lab)
         if typ != basis:
             typ = basis
-        Pmid = PauliString.from_supports(supp if basis == 'X' else [], [] if basis == 'X' else supp, n)
+        Pmid = PauliString.from_supports(
+            supp if basis == "X" else [], [] if basis == "X" else supp, n
+        )
 
         # Contracting events across rounds
         events: List[Tuple[str, object]] = []
-        events.append(('init', None))
+        events.append(("init", None))
         rt_list = sched.rounds_for_label(lab, R)
         for r, t in rt_list:
-            events.append(('contract', (r, t)))
-        events.append(('final', None))
+            events.append(("contract", (r, t)))
+        events.append(("final", None))
 
         for i in range(len(events) - 1):
             A = events[i]
@@ -75,13 +78,13 @@ def plan_quasi_detectors(
                 continue
 
             # Sentinel (r,t) to enumerate intervening schedule layers
-            a_rt: Optional[Tuple[int, int]] = (1, -1) if A[0] == 'init' else A[1]  # type: ignore[assignment]
-            b_rt: Optional[Tuple[int, int]] = (R, L) if B[0] == 'final' else B[1]  # type: ignore[assignment]
+            a_rt: Optional[Tuple[int, int]] = (1, -1) if A[0] == "init" else A[1]  # type: ignore[assignment]
+            b_rt: Optional[Tuple[int, int]] = (R, L) if B[0] == "final" else B[1]  # type: ignore[assignment]
 
             # Collect recs
             recs: List[int] = []
             intervening: List[Tuple[int, int]] = []
-            if A[0] == 'init':
+            if A[0] == "init":
                 rec_init = log.init_mpp[basis][lab]
                 recs.append(int(rec_init))
 
@@ -91,12 +94,12 @@ def plan_quasi_detectors(
                 r_i = idx // L + 1
                 t_i = idx % L
                 Pc = layers[t_i].propagate(Pmid)
-                if basis == 'X':
+                if basis == "X":
                     S = set(Pc.x_support())
-                    key = (r_i, t_i, 'X')
+                    key = (r_i, t_i, "X")
                 else:
                     S = set(Pc.z_support())
-                    key = (r_i, t_i, 'Z')
+                    key = (r_i, t_i, "Z")
                 root_map = log.per_layer.get(key, {})
                 for q in S:
                     if q in root_map:
@@ -104,12 +107,12 @@ def plan_quasi_detectors(
                 if S:
                     intervening.append((r_i, t_i))
 
-            if B[0] == 'contract':
+            if B[0] == "contract":
                 r_b, t_b = b_rt  # type: ignore[misc]
                 root_q = sched.label_to_root[t_b][lab]
                 rec = log.per_layer[(r_b, t_b, basis)][root_q]
                 recs.append(int(rec))
-            elif B[0] == 'final':
+            elif B[0] == "final":
                 rec = log.final_mpp[basis][lab]
                 recs.append(int(rec))
 
@@ -119,11 +122,19 @@ def plan_quasi_detectors(
             plan.rec_sets.append(recs)
             info = DetectorInfo(
                 id=det_id,
-                kind='quasi',
+                kind="quasi",
                 label=lab,
                 basis=basis,
-                start={'type': A[0], 'round': a_rt[0] if a_rt else None, 'layer': a_rt[1] if a_rt else None},
-                end={'type': B[0], 'round': b_rt[0] if b_rt else None, 'layer': b_rt[1] if b_rt else None},
+                start={
+                    "type": A[0],
+                    "round": a_rt[0] if a_rt else None,
+                    "layer": a_rt[1] if a_rt else None,
+                },
+                end={
+                    "type": B[0],
+                    "round": b_rt[0] if b_rt else None,
+                    "layer": b_rt[1] if b_rt else None,
+                },
                 intervening=intervening,
                 recs=list(recs),
             )

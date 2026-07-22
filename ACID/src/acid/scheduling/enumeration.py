@@ -2,6 +2,7 @@
 
 Schedules are lists of directed moves per timestep that gather onto the root.
 """
+
 from typing import Hashable, Iterable, List, Tuple, Dict
 import itertools as it
 import networkx as nx
@@ -12,6 +13,7 @@ from collections import namedtuple
 # where steps[t] is the list of directed edges executed at timestep t.
 
 Schedule = namedtuple("Schedule", ["root", "steps"])
+
 
 def enumerate_all_schedules(G: nx.Graph, max_steps: int) -> Iterable[Dict[str, object]]:
     """
@@ -36,7 +38,9 @@ def enumerate_all_schedules(G: nx.Graph, max_steps: int) -> Iterable[Dict[str, o
                 continue
 
             # Enumerate schedules that gather to `root` within max_steps.
-            for steps in _gather_subtree_schedules(adj, height, root, parent=None, max_steps_left=max_steps):
+            for steps in _gather_subtree_schedules(
+                adj, height, root, parent=None, max_steps_left=max_steps
+            ):
                 yield Schedule(root, steps)
 
 

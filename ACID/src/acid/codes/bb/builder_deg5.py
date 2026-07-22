@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import List, Tuple
 
 import networkx as nx
@@ -23,7 +22,9 @@ def _h_template() -> nx.Graph:
     return H
 
 
-def build_code_from_spec(spec: CodeSpec) -> Tuple[BaseCode, SquareGridEmbedding, List[Tuple[int, int, str]]]:
+def build_code_from_spec(
+    spec: CodeSpec,t
+) -> Tuple[BaseCode, SquareGridEmbedding, List[Tuple[int, int, str]]]:
     """
     Build a BaseCode with degree-5 connectivity derived directly from the BB polynomials.
 
@@ -52,7 +53,9 @@ def build_code_from_spec(spec: CodeSpec) -> Tuple[BaseCode, SquareGridEmbedding,
     fx = 1 if (l % 2 == 0) else 0
     fy = 1 if (m % 2 == 0) else 0
     if fx == 0 and fy == 0:
-        raise ValueError(f"No valid homomorphism for code (l={l}, m={m}) — require at least one even")
+        raise ValueError(
+            f"No valid homomorphism for code (l={l}, m={m}) — require at least one even"
+        )
     use_fx = spec.fx
     use_fy = spec.fy
     if use_fx is None or use_fy is None:
@@ -60,13 +63,14 @@ def build_code_from_spec(spec: CodeSpec) -> Tuple[BaseCode, SquareGridEmbedding,
         use_fx = fx if use_fx is None else use_fx
         use_fy = fy if use_fy is None else use_fy
 
-    bb = BBMidCycle(ring, A, B, homomorphism_f_x=int(use_fx), homomorphism_f_y=int(use_fy))
+    bb = BBMidCycle(
+        ring, A, B, homomorphism_f_x=int(use_fx), homomorphism_f_y=int(use_fy)
+    )
     embedding = SquareGridEmbedding(ring=bb.ring, pitch=1.0)
 
     # For sanity: object stabiliser supports for assert checks (as sets of qubit ids)
     obj_stabs = [
-        set(embedding.qubit_id(*q) for q in q_s)
-        for s, q_s in bb.stabilizers().items()
+        set(embedding.qubit_id(*q) for q in q_s) for s, q_s in bb.stabilizers().items()
     ]
 
     H = _h_template()
@@ -77,44 +81,46 @@ def build_code_from_spec(spec: CodeSpec) -> Tuple[BaseCode, SquareGridEmbedding,
     for ax in range(l):
         for ay in range(m):
             q = Monomial(ax, ay, bb.ring)
-            even_odd = 'O' if bb.even_odd_monomial(q) else 'E'
+            even_odd = "O" if bb.even_odd_monomial(q) else "E"
 
             # Base L/R at q
-            l_q = embedding.qubit_id(*q.as_LR_tuple('L'))
-            r_q = embedding.qubit_id(*q.as_LR_tuple('R'))
+            l_q = embedding.qubit_id(*q.as_LR_tuple("L"))
+            r_q = embedding.qubit_id(*q.as_LR_tuple("R"))
 
             # Neighbours for X
-            l_a2q = embedding.qubit_id(*(a2 * q).as_LR_tuple('L'))
-            l_a3q = embedding.qubit_id(*(a3 * q).as_LR_tuple('L'))
-            r_b2q = embedding.qubit_id(*(b2 * q).as_LR_tuple('R'))
-            r_b3q = embedding.qubit_id(*(b3 * q).as_LR_tuple('R'))
+            l_a2q = embedding.qubit_id(*(a2 * q).as_LR_tuple("L"))
+            l_a3q = embedding.qubit_id(*(a3 * q).as_LR_tuple("L"))
+            r_b2q = embedding.qubit_id(*(b2 * q).as_LR_tuple("R"))
+            r_b3q = embedding.qubit_id(*(b3 * q).as_LR_tuple("R"))
 
             # Neighbours for Z
-            r_a2invq = embedding.qubit_id(*(a2.inv() * q).as_LR_tuple('R'))
-            r_a3invq = embedding.qubit_id(*(a3.inv() * q).as_LR_tuple('R'))
-            l_b2invq = embedding.qubit_id(*(b2.inv() * q).as_LR_tuple('L'))
-            l_b3invq = embedding.qubit_id(*(b3.inv() * q).as_LR_tuple('L'))
+            r_a2invq = embedding.qubit_id(*(a2.inv() * q).as_LR_tuple("R"))
+            r_a3invq = embedding.qubit_id(*(a3.inv() * q).as_LR_tuple("R"))
+            l_b2invq = embedding.qubit_id(*(b2.inv() * q).as_LR_tuple("L"))
+            l_b3invq = embedding.qubit_id(*(b3.inv() * q).as_LR_tuple("L"))
 
             # X stabiliser map (ordering matches H edges to actual device connections)
             x_map = [r_b2q, l_q, r_b3q, l_a2q, r_q, l_a3q]
             assert set(x_map) in obj_stabs
             label_x = f"X{even_odd}({ax},{ay})"
-            shapes.append(StabiliserShape('X', H, SEC_length, x_map, label_x))
+            shapes.append(StabiliserShape("X", H, SEC_length, x_map, label_x))
 
             # Z stabiliser map
             z_map = [r_a2invq, l_q, r_a3invq, l_b2invq, r_q, l_b3invq]
             assert set(z_map) in obj_stabs
             label_z = f"Z{even_odd}({ax},{ay})"
-            shapes.append(StabiliserShape('Z', H, SEC_length, z_map, label_z))
+            shapes.append(StabiliserShape("Z", H, SEC_length, z_map, label_z))
 
             # Degree-5 global connectivity edges from l_q
-            connections.extend([
-                (l_q, r_q, 'I'),
-                (l_q, r_a2invq, 'A2'),
-                (l_q, r_a3invq, 'A3'),
-                (l_q, r_b2q, 'B2'),
-                (l_q, r_b3q, 'B3'),
-            ])
+            connections.extend(
+                [
+                    (l_q, r_q, "I"),
+                    (l_q, r_a2invq, "A2"),
+                    (l_q, r_a3invq, "A3"),
+                    (l_q, r_b2q, "B2"),
+                    (l_q, r_b3q, "B3"),
+                ]
+            )
 
     # Build global device graph
     G = nx.Graph()
@@ -122,6 +128,11 @@ def build_code_from_spec(spec: CodeSpec) -> Tuple[BaseCode, SquareGridEmbedding,
     for u, v, _ in connections:
         G.add_edge(u, v)
 
-    base = BaseCode(num_qubits=bb.num_qubits, connectivity_graph=G, shapes=shapes, connection_classes=connections)
+    base = BaseCode(
+        num_qubits=bb.num_qubits,
+        connectivity_graph=G,
+        shapes=shapes,
+        connection_classes=connections,
+    )
     base.validate_local_connectivity()
     return base, embedding, connections

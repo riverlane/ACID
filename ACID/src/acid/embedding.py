@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Embedding abstractions for mapping code coordinates to planar layouts.
 
 - SquareGridEmbedding: periodic (torus) with L/R qubits per cell.
@@ -13,7 +14,6 @@ from .codes.bb.algebra import GroupRing, Monomial
 
 
 class Embedding(ABC):
-
     @abstractmethod
     def qubit_id(self, a: int, b: int, c: int) -> int:
         pass
@@ -21,7 +21,7 @@ class Embedding(ABC):
     @abstractmethod
     def id_to_tuple(self, qid: int) -> Tuple[int, int, int]:
         pass
-    
+
     @abstractmethod
     def coords(self, a: int, b: int, c: int) -> Tuple[float, float]:
         pass
@@ -43,6 +43,18 @@ class Embedding(ABC):
 
 @dataclass
 class SquareGridEmbedding(Embedding):
+    """Periodic (torus) square-grid embedding for bivariate bicycle codes.
+
+    Each cell (a, b) in Z_l x Z_m holds two qubits: a left qubit (c=0) and a
+    right qubit (c=1). Left qubits are offset half a pitch in x; right qubits
+    are offset half a pitch in y, producing a checkerboard-style layout.
+
+    Attributes:
+        ring: The group ring Z_l x Z_m defining the code lattice.
+        pitch: Spacing between adjacent cells in the planar layout.
+        num_qubits: Total number of qubits (set automatically to l * m * 2).
+    """
+
     ring: GroupRing
     pitch: float = 1.0
     num_qubits: int = 0  # will be set in __post_init__
@@ -53,7 +65,7 @@ class SquareGridEmbedding(Embedding):
     def qubit_id(self, a: int, b: int, c: int) -> int:
         a0, b0 = self.ring.canonical(a, b)
         return ((a0 * self.ring.m) + b0) * 2 + (c & 1)
-    
+
     def id_to_tuple(self, qid: int) -> Tuple[int, int, int]:
         assert 0 <= qid < self.num_qubits, "Qubit ID out of range"
         a = (qid // 2) // self.ring.m
@@ -71,21 +83,27 @@ class SquareGridEmbedding(Embedding):
     def id_and_coords_for(self, g: Monomial, c: int) -> Tuple[int, Tuple[float, float]]:
         i = self.qubit_id(g.a, g.b, c)
         return i, self.coords(g.a, g.b, c)
-    
+
     @property
     def height(self) -> int:
-        return self.ring.m  
+        return self.ring.m
+
     @property
     def width(self) -> int:
         return self.ring.l
+
 
 class CoordMapEmbedding(Embedding):
     def __init__(self, xy_to_id: Dict[Tuple[int, int], int]):
         self._xy_to_id = dict(xy_to_id)
         self._id_to_xy = {qid: xy for xy, qid in self._xy_to_id.items()}
         self.num_qubits = len(self._id_to_xy)
-        self._width = max(x for x, _ in self._xy_to_id.keys()) + 1 if self._xy_to_id else 0
-        self._height = max(y for _, y in self._xy_to_id.keys()) + 1 if self._xy_to_id else 0
+        self._width = (
+            max(x for x, _ in self._xy_to_id.keys()) + 1 if self._xy_to_id else 0
+        )
+        self._height = (
+            max(y for _, y in self._xy_to_id.keys()) + 1 if self._xy_to_id else 0
+        )
 
     def qubit_id(self, a: int, b: int, c: int) -> int:
         return self._xy_to_id[(a, b)]

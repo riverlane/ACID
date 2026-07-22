@@ -36,8 +36,8 @@ class ScheduleIndex:
             typ, _ = self.dcode.quasi_support(lab)
             self.basis_of[lab] = typ
         # Basis label sets for MPP events
-        self.labels_x: Set[str] = {lab for lab, b in self.basis_of.items() if b == 'X'}
-        self.labels_z: Set[str] = {lab for lab, b in self.basis_of.items() if b == 'Z'}
+        self.labels_x: Set[str] = {lab for lab, b in self.basis_of.items() if b == "X"}
+        self.labels_z: Set[str] = {lab for lab, b in self.basis_of.items() if b == "Z"}
 
         # Contracting layer indices per label (within one schedule period)
         self.contracting_ts: Dict[str, List[int]] = {}
@@ -57,7 +57,9 @@ class ScheduleIndex:
         ts = self.contracting_ts.get(lab, [])
         return [(r, t) for r in range(1, R + 1) for t in ts]
 
-    def any_anticomm_measured_between(self, lab: str, A: Tuple[int, int], B: Tuple[int, int]) -> bool:
+    def any_anticomm_measured_between(
+        self, lab: str, A: Tuple[int, int], B: Tuple[int, int]
+    ) -> bool:
         """
         Return True if any layer strictly between (A,B) measures a quasi that anticommutes with 'lab'.
         A,B are (round, layer) indices with 1-based round and 0-based layer.
@@ -78,7 +80,9 @@ class ScheduleIndex:
         return False
 
     # --- Unified anticomm guard across init/final and schedule layers ---
-    def _event_index(self, kind: str, basis: Optional[str], rt: Optional[Tuple[int, int]], R: int) -> int:
+    def _event_index(
+        self, kind: str, basis: Optional[str], rt: Optional[Tuple[int, int]], R: int
+    ) -> int:
         """Map an anchor (kind,basis,rt) to a linear event index.
 
         Event order:
@@ -88,16 +92,16 @@ class ScheduleIndex:
           2+R*L: finalX
           2+R*L+1: finalZ
         """
-        if kind == 'init':
-            assert basis in ('X', 'Z')
-            return 0 if basis == 'X' else 1
-        if kind == 'contract':
+        if kind == "init":
+            assert basis in ("X", "Z")
+            return 0 if basis == "X" else 1
+        if kind == "contract":
             assert rt is not None
             r, t = rt
             return 2 + (int(r) - 1) * self.L + int(t)
-        if kind == 'final':
-            assert basis in ('X', 'Z')
-            return 2 + R * self.L + (0 if basis == 'X' else 1)
+        if kind == "final":
+            assert basis in ("X", "Z")
+            return 2 + R * self.L + (0 if basis == "X" else 1)
         raise ValueError(f"Unknown event kind: {kind}")
 
     def _measured_labels_at_event(self, eidx: int, R: int) -> Set[str]:
@@ -130,8 +134,8 @@ class ScheduleIndex:
         Return True if any anticommuting quasi of 'lab' is measured at any event strictly
         between anchors A and B (which may be init/final or a contract layer).
         """
-        eA = self._event_index(A[0], basis if A[0] != 'contract' else None, A[1], R)
-        eB = self._event_index(B[0], basis if B[0] != 'contract' else None, B[1], R)
+        eA = self._event_index(A[0], basis if A[0] != "contract" else None, A[1], R)
+        eB = self._event_index(B[0], basis if B[0] != "contract" else None, B[1], R)
         if eA >= eB:
             return False
         nbrs = self.neighbors.get(lab, set())
