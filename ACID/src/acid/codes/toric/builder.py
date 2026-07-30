@@ -48,6 +48,7 @@ def build_toric_code(
     shapes: list[StabiliserShape] = []
     connections: list[tuple[int, int, str]] = []
 
+    # generates stabiliser shapes and connectivity edges for each monomial (a, b) in the embedding
     for ax in range(l):
         for ay in range(m):
             q = Monomial(ax, ay, ring)
