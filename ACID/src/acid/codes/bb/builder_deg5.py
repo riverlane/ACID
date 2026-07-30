@@ -82,20 +82,20 @@ def build_code_from_spec(
             even_odd = "O" if bb.even_odd_monomial(q) else "E"
 
             # Base L/R at q
-            l_q = embedding.qubit_id(*q.as_LR_tuple("L"))
-            r_q = embedding.qubit_id(*q.as_LR_tuple("R"))
+            l_q = embedding.qubit_id(*q.to_coordinate_LR_tuple("L"))
+            r_q = embedding.qubit_id(*q.to_coordinate_LR_tuple("R"))
 
             # Neighbours for X
-            l_a2q = embedding.qubit_id(*(a2 * q).as_LR_tuple("L"))
-            l_a3q = embedding.qubit_id(*(a3 * q).as_LR_tuple("L"))
-            r_b2q = embedding.qubit_id(*(b2 * q).as_LR_tuple("R"))
-            r_b3q = embedding.qubit_id(*(b3 * q).as_LR_tuple("R"))
+            l_a2q = embedding.qubit_id(*(a2 * q).to_coordinate_LR_tuple("L"))
+            l_a3q = embedding.qubit_id(*(a3 * q).to_coordinate_LR_tuple("L"))
+            r_b2q = embedding.qubit_id(*(b2 * q).to_coordinate_LR_tuple("R"))
+            r_b3q = embedding.qubit_id(*(b3 * q).to_coordinate_LR_tuple("R"))
 
             # Neighbours for Z
-            r_a2invq = embedding.qubit_id(*(a2.inv() * q).as_LR_tuple("R"))
-            r_a3invq = embedding.qubit_id(*(a3.inv() * q).as_LR_tuple("R"))
-            l_b2invq = embedding.qubit_id(*(b2.inv() * q).as_LR_tuple("L"))
-            l_b3invq = embedding.qubit_id(*(b3.inv() * q).as_LR_tuple("L"))
+            r_a2invq = embedding.qubit_id(*(a2.inv() * q).to_coordinate_LR_tuple("R"))
+            r_a3invq = embedding.qubit_id(*(a3.inv() * q).to_coordinate_LR_tuple("R"))
+            l_b2invq = embedding.qubit_id(*(b2.inv() * q).to_coordinate_LR_tuple("L"))
+            l_b3invq = embedding.qubit_id(*(b3.inv() * q).to_coordinate_LR_tuple("L"))
 
             # X stabiliser map (ordering matches H edges to actual device connections)
             x_map = [r_b2q, l_q, r_b3q, l_a2q, r_q, l_a3q]
