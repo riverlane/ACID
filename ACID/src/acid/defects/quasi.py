@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List
 
 
 @dataclass(frozen=True)
@@ -7,7 +6,7 @@ class QuasiProduct:
     label: str
     pauli_type: str
     # Members are labels of quasi-stabilisers (strings)
-    members: List[str]
+    members: list[str]
 
 
 @dataclass(frozen=True)

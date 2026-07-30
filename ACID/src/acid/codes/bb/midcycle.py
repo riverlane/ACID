@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Set, Tuple
 
 from acid.codes.bb.algebra import GroupRing, Monomial, Polynomial
 from acid.pauli import StabiliserCode
@@ -38,14 +37,14 @@ class BBMidCycle:
         """Return the parity of the coordinates of a monomial g under the homomorphism f_x, f_y."""
         return self.even_odd_coords(g.a, g.b)
 
-    def stabilizers(self) -> Dict[Tuple[int, int, str], Set[Tuple[int, int, int]]]:
+    def stabilizers(self) -> dict[tuple[int, int, str], set[tuple[int, int, int]]]:
         """Returns a dictionary mapping each stabilizer (a, b, basis) to its support as a set of
         qubit coordinates (a, b, c [0 for left, 1 for right])."""
-        out: Dict[Tuple[int, int, str], Set[Tuple[int, int, int]]] = {}
+        out: dict[tuple[int, int, str], set[tuple[int, int, int]]] = {}
         for a in range(self.ring.l):
             for b in range(self.ring.m):
                 g = Monomial(a, b, self.ring)
-                X_support: Set[Tuple[int, int, int]] = set()
+                X_support: set[tuple[int, int, int]] = set()
                 for t in self.A:
                     h = t * g
                     X_support.add((h.a, h.b, 0))
@@ -53,7 +52,7 @@ class BBMidCycle:
                     h = t * g
                     X_support.add((h.a, h.b, 1))
                 out[(g.a, g.b, "X")] = X_support
-                Z_support: Set[Tuple[int, int, int]] = set()
+                Z_support: set[tuple[int, int, int]] = set()
                 for t in self.B:
                     h = t.inv() * g
                     Z_support.add((h.a, h.b, 0))

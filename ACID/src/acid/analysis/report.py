@@ -1,21 +1,20 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
 
-from acid.defects.defective_code import DefectiveCode
 from acid.analysis.schedule import analyze_layers
+from acid.defects.defective_code import DefectiveCode
 from acid.defects.syndrome_extraction_circuit import SyndromeExtractionCircuit
 
 
 def write_schedule_report(
-    out_path: Path, dcode: DefectiveCode, Ls: List[int], *, solve_time: float = 60.0
+    out_path: Path, dcode: DefectiveCode, Ls: list[int], *, solve_time: float = 60.0
 ) -> None:
     """
     Generic report writer for any DefectiveCode + schedule lengths.
     Includes stats, per-layer measured/in-process/completed, and product completions.
     """
-    lines: List[str] = []
+    lines: list[str] = []
     lines.append("# Schedule Report\n")
     stats = dcode.stats()
     lines.append(

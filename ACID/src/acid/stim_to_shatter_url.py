@@ -9,10 +9,9 @@ This reads the given .stim file, URL-encodes its content, and prompts the user
 to open the Shatter web app with the circuit embedded in the URL fragment.
 """
 
+import webbrowser
 from pathlib import Path
 from urllib.parse import quote
-import webbrowser
-
 
 _SHATTER_BASE = "https://stasiu51.github.io/Shatter/#circuit="
 

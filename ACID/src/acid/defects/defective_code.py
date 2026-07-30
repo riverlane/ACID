@@ -1,33 +1,32 @@
 from __future__ import annotations
 
-from typing import List, Tuple, Dict, Set, Iterable, cast
+from collections.abc import Iterable
 from pathlib import Path
-import numpy as np
-
+from typing import cast
 
 import networkx as nx
+import numpy as np
 
-from acid.defects.quasi import QuasiProduct, QuasiStabiliser
 from acid.base_code import BaseCode, StabiliserShape
+from acid.defects.quasi import QuasiProduct, QuasiStabiliser
 from acid.defects.syndrome_extraction_circuit import SyndromeExtractionCircuit
-from acid.scheduling.types import StabiliserTemplate
-from acid.solver.schedule_solver import ScheduleSolver
-from acid.scheduling.template_factory import TemplateFactory
-
 from acid.device import DeviceVisualisation
 from acid.embedding import Embedding
 from acid.gf2_utils import (
-    gf2_rank,
-    gf2_nullspace,
     gf2_bidiagonalize,
-    gf2_rref_colwise,
-    gf2_rank_normal_numpy,
     gf2_is_in_span,
+    gf2_nullspace,
+    gf2_rank,
+    gf2_rank_normal_numpy,
+    gf2_rref_colwise,
 )
-from acid.pauli import PauliString, CommutingPauliBasis, AntiCommutingPauliBasis
+from acid.pauli import AntiCommutingPauliBasis, CommutingPauliBasis, PauliString
+from acid.scheduling.template_factory import TemplateFactory
+from acid.scheduling.types import StabiliserTemplate
+from acid.solver.schedule_solver import ScheduleSolver
 
 
-def matmul_mod2_transpose(A: List[List[int]], B: List[List[int]]) -> List[List[int]]:
+def matmul_mod2_transpose(A: list[list[int]], B: list[list[int]]) -> list[list[int]]:
     # A: r x n, B: s x n => A * B^T : r x s
     r = len(A)
     s = len(B)
@@ -46,12 +45,12 @@ def matmul_mod2_transpose(A: List[List[int]], B: List[List[int]]) -> List[List[i
 
 def build_quasi_stabilisers(
     base: BaseCode,
-    dropped_qubits: Set[int],
-    defective_edges: Set[Tuple[int, int]] | None = None,
-) -> List[QuasiStabiliser]:
-    out: List[QuasiStabiliser] = []
+    dropped_qubits: set[int],
+    defective_edges: set[tuple[int, int]] | None = None,
+) -> list[QuasiStabiliser]:
+    out: list[QuasiStabiliser] = []
     # Normalize defective edges as undirected (min,max)
-    def_edges: Set[Tuple[int, int]] = set()
+    def_edges: set[tuple[int, int]] = set()
     if defective_edges:
         def_edges = {(u, v) if u <= v else (v, u) for (u, v) in defective_edges}
     for shape in base.shapes:
@@ -63,7 +62,7 @@ def build_quasi_stabilisers(
         H = G.subgraph(keep_nodes).copy()
         # Remove edges whose mapped code-qubit pair is defective
         if def_edges:
-            to_remove: List[Tuple[int, int]] = []
+            to_remove: list[tuple[int, int]] = []
             for u0, v0 in H.edges():
                 cu, cv = shape.qubit_map[u0], shape.qubit_map[v0]
                 key = (cu, cv) if cu <= cv else (cv, cu)
@@ -86,7 +85,7 @@ def build_quasi_stabilisers(
     return out
 
 
-def build_anticommutation_graph(quasi_stabs: List[QuasiStabiliser]) -> nx.Graph:
+def build_anticommutation_graph(quasi_stabs: list[QuasiStabiliser]) -> nx.Graph:
     """Return anti-commutation graph with label-nodes and 'quasi' attributes.
 
     Nodes are quasi labels (strings). Each node stores the QuasiStabiliser as
@@ -118,14 +117,14 @@ class DefectiveCode:
     def __init__(
         self,
         code: BaseCode,
-        dropped_nodes: List[int] | Set[int] | Tuple[int, ...] = (),
-        dropped_edges: List[Tuple[int, int]] | Tuple[Tuple[int, int], ...] = (),
+        dropped_nodes: list[int] | set[int] | tuple[int, ...] = (),
+        dropped_edges: list[tuple[int, int]] | tuple[tuple[int, int], ...] = (),
         *,
         verify: bool = True,
     ) -> None:
         self.base_code = code
-        self.dropped_nodes: Set[int] = set(int(q) for q in dropped_nodes)
-        self.dropped_edges: List[Tuple[int, int]] = [
+        self.dropped_nodes: set[int] = set(int(q) for q in dropped_nodes)
+        self.dropped_edges: list[tuple[int, int]] = [
             (int(u), int(v)) for (u, v) in dropped_edges
         ]
         self.num_qubits = self.base_code.num_qubits - len(self.dropped_nodes)
@@ -150,27 +149,27 @@ class DefectiveCode:
 
         # Step 1: build quasis
         # Normalize dropped edges as undirected pairs
-        def_edges_norm: Set[Tuple[int, int]] = set()
+        def_edges_norm: set[tuple[int, int]] = set()
         for u, v in self.dropped_edges:
             a, b = (int(u), int(v))
             def_edges_norm.add((a, b) if a <= b else (b, a))
-        self.all_quasis: List[QuasiStabiliser] = build_quasi_stabilisers(
+        self.all_quasis: list[QuasiStabiliser] = build_quasi_stabilisers(
             self.base_code, self.dropped_nodes, defective_edges=def_edges_norm
         )
         self.x_quasis = [quasi for quasi in self.all_quasis if quasi.pauli_type == "X"]
         self.z_quasis = [quasi for quasi in self.all_quasis if quasi.pauli_type == "Z"]
         # Labels for consistency across modules
-        self.quasi_labels: List[str] = [q.label for q in self.all_quasis]
+        self.quasi_labels: list[str] = [q.label for q in self.all_quasis]
 
         # Step 2: anticomm graph (pruned, label-noded)
         self.anticomm_graph = build_anticommutation_graph(self.all_quasis)
-        self.nontrivial_idx: Set[str] = set(self.anticomm_graph.nodes())
+        self.nontrivial_idx: set[str] = set(self.anticomm_graph.nodes())
         # Convenience maps
-        self.label_to_quasi: Dict[str, QuasiStabiliser] = {
+        self.label_to_quasi: dict[str, QuasiStabiliser] = {
             q.label: q for q in self.all_quasis
         }
         # Also create one-hot quasis for dropped qubits (kept separate from anticomm graph)
-        self.dropped_qubit_quasis: Dict[str, QuasiStabiliser] = (
+        self.dropped_qubit_quasis: dict[str, QuasiStabiliser] = (
             self._build_dropped_quasis()
         )
         self.label_to_quasi.update(self.dropped_qubit_quasis)
@@ -179,25 +178,25 @@ class DefectiveCode:
         # anticommutation graph (bipartite Z-X) via GF(2) diagonalization.
         # Build a labeled anticommutation graph using quasi labels
         self._compute_diag_from_anticomm()
-        self.products: List[QuasiProduct] = self._build_products()
+        self.products: list[QuasiProduct] = self._build_products()
         # Store base stabiliser matrices HX/HZ at base width n for reuse
         _hx_supp, _hz_supp = self._stabiliser_supports()
         n_base = self.base_code.num_qubits
         # stabiliser matrices
-        self.HX: List[List[int]] = self._rows_to_matrix(_hx_supp, n_base)
-        self.HZ: List[List[int]] = self._rows_to_matrix(_hz_supp, n_base)
-        self.gauges: List[Tuple[QuasiProduct | None, QuasiProduct | None]] = (
+        self.HX: list[list[int]] = self._rows_to_matrix(_hx_supp, n_base)
+        self.HZ: list[list[int]] = self._rows_to_matrix(_hz_supp, n_base)
+        self.gauges: list[tuple[QuasiProduct | None, QuasiProduct | None]] = (
             self._build_gauges()
         )
 
         # Also store gauge matrices GX/GZ directly from gauges (includes one-hot drop gauges)
         # so if there is a dropped qubit, the corresponding one-hot gauge is included in GX/GZ.
         # and multiply any gauge
-        def _xor_supports_labels(members: List[str]) -> List[int]:
+        def _xor_supports_labels(members: list[str]) -> list[int]:
             """XOR the supports of the given quasis by their labels.
 
             Returns the sorted list of qubit indices in the XORed support."""
-            acc: Set[int] = set()
+            acc: set[int] = set()
             for lab in members:
                 q = self.label_to_quasi.get(lab)
                 if q is None:
@@ -206,8 +205,8 @@ class DefectiveCode:
                 acc = (acc - s) | (s - acc)
             return sorted(acc)
 
-        GX_mat: List[List[int]] = []
-        GZ_mat: List[List[int]] = []
+        GX_mat: list[list[int]] = []
+        GZ_mat: list[list[int]] = []
         # Constructs gauge matrices GX and GZ from the quasi products in self.gauges.
         for zg, xg in self.gauges:
             if xg is not None:
@@ -243,8 +242,8 @@ class DefectiveCode:
                         row[q] = 1
                         GZ_mat.append(row)
         # gauge matrices (may be empty if no gauges)
-        self.GX: List[List[int]] = GX_mat
-        self.GZ: List[List[int]] = GZ_mat
+        self.GX: list[list[int]] = GX_mat
+        self.GZ: list[list[int]] = GZ_mat
 
         print(GX_mat)
         print(GZ_mat)
@@ -258,7 +257,7 @@ class DefectiveCode:
         if verify:
             self._verify_logicals_and_gauges()
 
-    def logical_rows_2n(self) -> Tuple[List[List[int]], List[List[int]]]:
+    def logical_rows_2n(self) -> tuple[list[list[int]], list[list[int]]]:
         """
         Return paired logical rows in 2n format [X|Z] over GF(2).
 
@@ -266,7 +265,7 @@ class DefectiveCode:
         """
         n = self.base_code.num_qubits
 
-        def vec2n_from_supports(Xs: List[int], Zs: List[int]) -> List[int]:
+        def vec2n_from_supports(Xs: list[int], Zs: list[int]) -> list[int]:
             X = [0] * n
             Z = [0] * n
             for q in Xs:
@@ -277,8 +276,8 @@ class DefectiveCode:
                     Z[q] ^= 1
             return X + Z
 
-        Lx_2n: List[List[int]] = []
-        Lz_2n: List[List[int]] = []
+        Lx_2n: list[list[int]] = []
+        Lz_2n: list[list[int]] = []
         for xs, zs in zip(self.logical_X_rows, self.logical_Z_rows):
             Lx_2n.append(vec2n_from_supports(xs, []))
             Lz_2n.append(vec2n_from_supports([], zs))
@@ -286,8 +285,8 @@ class DefectiveCode:
 
     def midcycle_untouched_stabilisers(self) -> CommutingPauliBasis:
         # Base-code stabilisers (un-products)
-        x_supps: List[List[int]] = []
-        z_supps: List[List[int]] = []
+        x_supps: list[list[int]] = []
+        z_supps: list[list[int]] = []
         for label in self.quasi_labels:
             if label in self.nontrivial_idx:
                 continue
@@ -309,10 +308,10 @@ class DefectiveCode:
         # Products derived from quasi SVD
         if not self.products:
             return None
-        label_to_quasi: Dict[str, QuasiStabiliser] = self.label_to_quasi
+        label_to_quasi: dict[str, QuasiStabiliser] = self.label_to_quasi
 
-        def xor_supports(members: List[str]) -> List[int]:
-            acc: Set[int] = set()
+        def xor_supports(members: list[str]) -> list[int]:
+            acc: set[int] = set()
             for lab in members:
                 q = label_to_quasi.get(lab)
                 if q is None:
@@ -321,8 +320,8 @@ class DefectiveCode:
                 acc = (acc - s) | (s - acc)
             return sorted(acc)
 
-        x_supps: List[List[int]] = []
-        z_supps: List[List[int]] = []
+        x_supps: list[list[int]] = []
+        z_supps: list[list[int]] = []
         for ps in self.products:
             supp = xor_supports(ps.members)
             if not supp:
@@ -341,13 +340,13 @@ class DefectiveCode:
             n=self.base_code.num_qubits,
         )
 
-    def _logical_pairs_mid_paulis(self) -> Tuple[List[PauliString], List[PauliString]]:
+    def _logical_pairs_mid_paulis(self) -> tuple[list[PauliString], list[PauliString]]:
         n = self.base_code.num_qubits
         Lx = [PauliString.from_supports(xs, [], n) for xs in self.logical_X_rows]
         Lz = [PauliString.from_supports([], zs, n) for zs in self.logical_Z_rows]
         return Lx, Lz
 
-    def _gauge_pairs_mid_paulis(self) -> Tuple[List[PauliString], List[PauliString]]:
+    def _gauge_pairs_mid_paulis(self) -> tuple[list[PauliString], list[PauliString]]:
         n = self.base_code.num_qubits
         # Build directly from stored gauge matrices (includes drop one-hots)
         Gx_ps = [
@@ -364,7 +363,7 @@ class DefectiveCode:
         Lx, Lz = self._logical_pairs_mid_paulis()
         return AntiCommutingPauliBasis(name="Lmid", X_rows=Lx, Z_rows=Lz)
 
-    def _reify_quasi_templates(self) -> List[Tuple[StabiliserTemplate, List[int], str]]:
+    def _reify_quasi_templates(self) -> list[tuple[StabiliserTemplate, list[int], str]]:
         """Reify a stabiliser template for each quasi stabiliser in self.all_quasis.
 
         Concatenates the qubit map from the parent stabiliser shape with the
@@ -372,7 +371,7 @@ class DefectiveCode:
 
         Returns a list of triplets (template, qubit_map, label) for each quasi."""
         tf = TemplateFactory()
-        triplets: List[Tuple[StabiliserTemplate, List[int], str]] = []
+        triplets: list[tuple[StabiliserTemplate, list[int], str]] = []
         for i, q in enumerate(self.all_quasis):
             shape: StabiliserShape = q.parent  # type: ignore[assignment]
             G = shape.connectivity_subgraph
@@ -411,8 +410,8 @@ class DefectiveCode:
             triplets.append((new_tmpl, qubit_map, q.label))
         return triplets
 
-    def _build_products(self) -> List[QuasiProduct]:
-        products: List[QuasiProduct] = []
+    def _build_products(self) -> list[QuasiProduct]:
+        products: list[QuasiProduct] = []
         # Z products are rows i >= r (over Z-side basis self.z_anti_qs)
         for i in range(self.r, len(self.U)):
             coeffs = self.U[i]
@@ -435,13 +434,13 @@ class DefectiveCode:
                 )
         return products
 
-    def _build_dropped_quasis(self) -> Dict[str, QuasiStabiliser]:
+    def _build_dropped_quasis(self) -> dict[str, QuasiStabiliser]:
         """Create one-hot quasi stabilisers for each dropped qubit (X and Z type).
 
         These are not included in the anticomm graph or scheduling, but allow
         treating dropped-qubit gauges uniformly as products over quasi labels.
         """
-        out: Dict[str, QuasiStabiliser] = {}
+        out: dict[str, QuasiStabiliser] = {}
         import networkx as nx
 
         n = self.base_code.num_qubits
@@ -474,8 +473,8 @@ class DefectiveCode:
             out[qz.label] = qz
         return out
 
-    def _build_gauges(self) -> List[Tuple[QuasiProduct | None, QuasiProduct | None]]:
-        gauges: List[Tuple[QuasiProduct | None, QuasiProduct | None]] = []
+    def _build_gauges(self) -> list[tuple[QuasiProduct | None, QuasiProduct | None]]:
+        gauges: list[tuple[QuasiProduct | None, QuasiProduct | None]] = []
         # Z gauges are rows i < r from U (Z space)
         for i in range(self.r):
             coeffs = self.U[i]
@@ -544,7 +543,7 @@ class DefectiveCode:
         ZN = len(self.z_anti_qs)
         XN = len(self.x_anti_qs)
         x_lookup = {q_x.label: i for i, q_x in enumerate(self.x_anti_qs)}
-        self.A: List[List[int]] = [[0] * XN for _ in range(ZN)]
+        self.A: list[list[int]] = [[0] * XN for _ in range(ZN)]
         for i, zl in enumerate(self.z_anti_qs):
             for nbr_label in self.anticomm_graph.neighbors(zl.label):
                 j = x_lookup[nbr_label]
@@ -553,7 +552,7 @@ class DefectiveCode:
         # X coefficients as rows of V^T
         self.VT = [list(row) for row in zip(*V)] if V else []
 
-    def _stabiliser_supports(self) -> Tuple[List[List[int]], List[List[int]]]:
+    def _stabiliser_supports(self) -> tuple[list[list[int]], list[list[int]]]:
         """Return (X_rows, Z_rows) stabiliser supports (as lists of qubit ids).
 
         Uses isolate quasi-stabilisers (post-dropout components that do not
@@ -561,11 +560,11 @@ class DefectiveCode:
         inferred from the anticommutation graph diagonalisation. This ensures
         supports reflect post-dropout connectivity (e.g., boundary 4->3).
         """
-        x_rows: List[List[int]] = []
-        z_rows: List[List[int]] = []
+        x_rows: list[list[int]] = []
+        z_rows: list[list[int]] = []
 
         # Add isolate quasis (labels not present in the anticomm graph after pruning)
-        label_to_quasi: Dict[str, QuasiStabiliser] = {
+        label_to_quasi: dict[str, QuasiStabiliser] = {
             q.label: q for q in self.all_quasis
         }
         for label in self.quasi_labels:
@@ -583,8 +582,8 @@ class DefectiveCode:
                 z_rows.append(supp)
 
         # Add product stabilisers derived from quasis
-        def xor_supports_labels(members: List[str]) -> List[int]:
-            acc: Set[int] = set()
+        def xor_supports_labels(members: list[str]) -> list[int]:
+            acc: set[int] = set()
             for lab in members:
                 q = label_to_quasi.get(lab)
                 if q is None:
@@ -604,9 +603,9 @@ class DefectiveCode:
 
         # Reduce to independent sets to avoid dependent SX/SZ
         # SX is [HX; GX] and SZ is [HZ; GZ]; we want to avoid dependent rows in either.
-        def reduce_independent(rows: List[List[int]], n: int) -> List[List[int]]:
-            M: List[List[int]] = []
-            keep: List[List[int]] = []
+        def reduce_independent(rows: list[list[int]], n: int) -> list[list[int]]:
+            M: list[list[int]] = []
+            keep: list[list[int]] = []
             r = 0
             for supp in rows:
                 vec = [0] * n
@@ -624,8 +623,8 @@ class DefectiveCode:
         z_rows = reduce_independent(z_rows, n)
         return x_rows, z_rows
 
-    def _rows_to_matrix(self, rows: List[List[int]], n: int) -> List[List[int]]:
-        M: List[List[int]] = []
+    def _rows_to_matrix(self, rows: list[list[int]], n: int) -> list[list[int]]:
+        M: list[list[int]] = []
         for supp in rows:
             vec = [0] * n
             for q in supp:
@@ -635,7 +634,7 @@ class DefectiveCode:
             M.append(vec)
         return M
 
-    def _compute_logical_rows(self) -> Tuple[List[List[int]], List[List[int]]]:
+    def _compute_logical_rows(self) -> tuple[list[list[int]], list[list[int]]]:
         """Explicit construction of logical operators per the stated recipe.
 
         1) Build SZ = [HZ; GZ] and SX = [HX; GX] at base width n, assert full row rank.
@@ -676,11 +675,11 @@ class DefectiveCode:
         CX = HX + NZ
         CZ = HZ + NX
         CX_rref, _ = cast(
-            Tuple[List[List[int]], List[int]],
+            tuple[list[list[int]], list[int]],
             gf2_rref_colwise(CX, clear_upper_triangle=False),
         )
         CZ_rref, _ = cast(
-            Tuple[List[List[int]], List[int]],
+            tuple[list[list[int]], list[int]],
             gf2_rref_colwise(CZ, clear_upper_triangle=False),
         )
 
@@ -699,7 +698,7 @@ class DefectiveCode:
             if not any(CZ_rref[i]):
                 raise AssertionError("First m rows of CZ_rref not independent")
 
-        def tail_non_zero_rows(R: List[List[int]], start: int) -> List[List[int]]:
+        def tail_non_zero_rows(R: list[list[int]], start: int) -> list[list[int]]:
             return [row for row in R[start:] if any(row)]
 
         tail_CX = tail_non_zero_rows(CX_rref, rank_HX)  # these define Z logicals
@@ -720,14 +719,14 @@ class DefectiveCode:
         # V = np.array(V, dtype=np.int8).tolist()
 
         def apply_transform(
-            T: List[List[int]], Rows: List[List[int]]
-        ) -> List[List[int]]:
+            T: list[list[int]], Rows: list[list[int]]
+        ) -> list[list[int]]:
             """Apply a GF(2) transformation T to a list of row vectors Rows,
             returning the transformed rows.
             """
             if not Rows:
                 return []
-            out: List[List[int]] = []
+            out: list[list[int]] = []
             for coeffs in T:
                 vec = [0] * len(Rows[0])
                 for idx, bit in enumerate(coeffs):
@@ -736,12 +735,12 @@ class DefectiveCode:
                 out.append(vec)
             return out
 
-        U_list: List[List[int]] = np.asarray(U, dtype=np.int8).tolist()
-        VtT_list: List[List[int]] = np.asarray(V_T.T, dtype=np.int8).tolist()
+        U_list: list[list[int]] = np.asarray(U, dtype=np.int8).tolist()
+        VtT_list: list[list[int]] = np.asarray(V_T.T, dtype=np.int8).tolist()
         Xp = apply_transform(U_list, X_rows)
         Zp = apply_transform(VtT_list, Z_rows)
 
-        def vec_to_support(v: List[int]) -> List[int]:
+        def vec_to_support(v: list[int]) -> list[int]:
             return [i for i, b in enumerate(v) if b & 1]
 
         X_supports = [vec_to_support(Xp[i]) for i in range(min(k_expected, len(Xp)))]
@@ -777,10 +776,10 @@ class DefectiveCode:
                 raise AssertionError(f"Gauge Z[{i}] has non-zero X part")
 
         # Convert PauliStrings to row matrices over base n
-        def rows_from_X(ps: List[PauliString]) -> List[List[int]]:
+        def rows_from_X(ps: list[PauliString]) -> list[list[int]]:
             return [row.X[:] for row in ps]
 
-        def rows_from_Z(ps: List[PauliString]) -> List[List[int]]:
+        def rows_from_Z(ps: list[PauliString]) -> list[list[int]]:
             return [row.Z[:] for row in ps]
 
         Lx = rows_from_X(Lx_ps)
@@ -818,7 +817,7 @@ class DefectiveCode:
 
         # Helper to check identity and zero blocks
         def check_block_is_identity(
-            mat: List[List[int]], r0: int, c0: int, sz: int, label: str
+            mat: list[list[int]], r0: int, c0: int, sz: int, label: str
         ) -> None:
             for i in range(sz):
                 for j in range(sz):
@@ -827,7 +826,7 @@ class DefectiveCode:
                         raise AssertionError(f"{label} block not identity at ({i},{j})")
 
         def check_block_is_zero(
-            mat: List[List[int]], r0: int, c0: int, rsz: int, csz: int, label: str
+            mat: list[list[int]], r0: int, c0: int, rsz: int, csz: int, label: str
         ) -> None:
             for i in range(rsz):
                 for j in range(csz):
@@ -860,7 +859,7 @@ class DefectiveCode:
         check_block_is_zero(C, k + g, k, sx, g, "Stabiliser-X/Gauge cross")
 
     # Public API
-    def stats(self) -> Dict:
+    def stats(self) -> dict:
         rank = self.r
         num_qpz = sum(1 for p in self.products if p.pauli_type == "Z")
         num_qpx = sum(1 for p in self.products if p.pauli_type == "X")
@@ -919,7 +918,7 @@ class DefectiveCode:
         }
 
     # Convenience helpers for downstream tools (read-only)
-    def quasi_support(self, label: str) -> Tuple[str, List[int]]:
+    def quasi_support(self, label: str) -> tuple[str, list[int]]:
         """
         Return (pauli_type, sorted list of code-qubit ids) for a quasi or stabiliser label.
 
@@ -938,7 +937,7 @@ class DefectiveCode:
     def anticommutation_graph(self) -> nx.Graph:
         return self.anticomm_graph.copy()
 
-    def products_list(self) -> List[QuasiProduct]:
+    def products_list(self) -> list[QuasiProduct]:
         return list(self.products)
 
     def prepare_solver(self, *, prune_params: dict | None = None) -> None:
@@ -981,8 +980,8 @@ class DefectiveCode:
         except Exception as e:
             from acid.solver.schedule_solver import (
                 SchedulingInfeasibleError,
-                SchedulingTimeLimitError,
                 SchedulingModelInvalidError,
+                SchedulingTimeLimitError,
             )
 
             if isinstance(e, SchedulingInfeasibleError):
@@ -1003,7 +1002,7 @@ class DefectiveCode:
         self,
         embedding: Embedding,
         *,
-        colour_map: Dict[str, str] | None = None,
+        colour_map: dict[str, str] | None = None,
         include_reset: bool = False,
         debug: bool = False,
     ) -> str:
@@ -1012,8 +1011,8 @@ class DefectiveCode:
         include_reset: if True, include an initial TICK and a full-qubit R line.
         """
         # Build connections list, prefer labelled classes if available from base_code
-        conns: List[Tuple[int, int, str]] = []
-        bad_conns: Set[Tuple[int, int, str]] = set()
+        conns: list[tuple[int, int, str]] = []
+        bad_conns: set[tuple[int, int, str]] = set()
         if getattr(self.base_code, "connection_classes", None):
             # Use provided classes
             for u, v, cls in self.base_code.connection_classes or []:
@@ -1068,10 +1067,10 @@ class DefectiveCode:
         # Untouched stabilisers correspond to isolated quasis; use their post-dropout supports.
         if debug:
             print("[viz] base_code stabilisers:", len(list(self.base_code.shapes)))
-        label_to_quasi: Dict[str, QuasiStabiliser] = {
+        label_to_quasi: dict[str, QuasiStabiliser] = {
             q.label: q for q in self.all_quasis
         }
-        untouched: List[Tuple[str, Iterable[int]]] = []
+        untouched: list[tuple[str, Iterable[int]]] = []
         for label in self.quasi_labels:
             if label in self.nontrivial_idx:
                 continue
@@ -1084,7 +1083,7 @@ class DefectiveCode:
 
         # Anticommuting quasi-stabilisers (nodes in anticomm graph)
         # Map label -> quasi info
-        anticomm_items: List[Tuple[str, Iterable[int]]] = []
+        anticomm_items: list[tuple[str, Iterable[int]]] = []
         for q in nx.get_node_attributes(self.anticomm_graph, "quasi").values():
             anticomm_items.append((q.pauli_type, sorted(q.support)))
         if debug:
@@ -1096,11 +1095,11 @@ class DefectiveCode:
             )
 
         # Product stabilisers: XOR supports of member quasis
-        product_items: List[Tuple[str, Iterable[int]]] = []
+        product_items: list[tuple[str, Iterable[int]]] = []
         if debug:
             print("[viz] product specs:", len(self.products))
         for ps in self.products:
-            acc: Set[int] = set()
+            acc: set[int] = set()
             for m in ps.members:
                 q = label_to_quasi.get(m)
                 if q is None:
@@ -1112,14 +1111,14 @@ class DefectiveCode:
             print("[viz] product polygons:", len(product_items))
 
         # Gauge items: combinations for the first r rows/cols in the diagonalization
-        gauge_items: List[Tuple[str, Iterable[int]]] = []
+        gauge_items: list[tuple[str, Iterable[int]]] = []
 
         if debug:
             print("[viz] gauge rank:", self.r)
 
         # helper to xor supports of member labels
-        def xor_supports(members: List[QuasiStabiliser]) -> List[int]:
-            acc: Set[int] = set()
+        def xor_supports(members: list[QuasiStabiliser]) -> list[int]:
+            acc: set[int] = set()
             for q in members:
                 s = set(q.support)
                 acc = (acc - s) | (s - acc)  # symmetric difference
@@ -1176,7 +1175,7 @@ class DefectiveCode:
         out_path,
         embedding: Embedding,
         *,
-        colour_map: Dict[str, str] | None = None,
+        colour_map: dict[str, str] | None = None,
         include_reset: bool = True,
     ) -> None:
         """

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
 import networkx as nx
 
 from acid.base_code import BaseCode, StabiliserShape
@@ -15,7 +14,7 @@ def _path_template(n: int = 4) -> nx.Graph:
 
 def build_unrotated_surface_grid_code(
     d: int,
-) -> Tuple[BaseCode, Dict[Tuple[int, int], int]]:
+) -> tuple[BaseCode, dict[tuple[int, int], int]]:
     """
     Distance-d unrotated surface (grid connectivity):
       - Grid size: (2d-1) x (2d-1), coords in [0..2d-2]
@@ -26,8 +25,8 @@ def build_unrotated_surface_grid_code(
     """
     W = 2 * d - 1
     H = 2 * d - 1
-    coord_to_qid: Dict[Tuple[int, int], int] = {}
-    qlist: List[Tuple[int, int]] = []
+    coord_to_qid: dict[tuple[int, int], int] = {}
+    qlist: list[tuple[int, int]] = []
     qid = 0
     for x in range(W):
         for y in range(H):
@@ -56,7 +55,7 @@ def build_unrotated_surface_grid_code(
     # Bottom and top rows (horizontal): (2j, y) - (2j+2, y)
     y_bottom = 0
     y_top = H - 1
-    for j in range(0, (W - 1) // 2):
+    for j in range((W - 1) // 2):
         x1 = 2 * j
         x2 = x1 + 2
         if hasq(x1, y_bottom) and hasq(x2, y_bottom):
@@ -66,7 +65,7 @@ def build_unrotated_surface_grid_code(
     # Left and right columns (vertical): (x, 2j) - (x, 2j+2)
     x_left = 0
     x_right = W - 1
-    for j in range(0, (H - 1) // 2):
+    for j in range((H - 1) // 2):
         y1 = 2 * j
         y2 = y1 + 2
         if hasq(x_left, y1) and hasq(x_left, y2):
@@ -74,7 +73,7 @@ def build_unrotated_surface_grid_code(
         if hasq(x_right, y1) and hasq(x_right, y2):
             G.add_edge(idq(x_right, y1), idq(x_right, y2))
 
-    shapes: List[StabiliserShape] = []
+    shapes: list[StabiliserShape] = []
 
     # Build stabilisers using cyclic local connectivity.
     # - X at (even,odd)

@@ -1,17 +1,19 @@
 from __future__ import annotations
-import stim
+
 from dataclasses import dataclass
-from typing import List, Dict, Tuple, Union
+
+import stim
+
+from acid.pauli import AntiCommutingPauliBasis, CommutingPauliBasis
 
 from ..gf2_utils import (
+    gf2_is_in_span,
     gf2_left_nullspace,
     gf2_rank,
-    gf2_is_in_span,
 )
-from acid.pauli import CommutingPauliBasis, AntiCommutingPauliBasis
 
 
-def pauli_string_to_row(p: stim.PauliString) -> List[int]:
+def pauli_string_to_row(p: stim.PauliString) -> list[int]:
     s = str(p)
     if s and s[0] in "+-":
         s = s[1:]
@@ -36,13 +38,13 @@ def pauli_string_to_row(p: stim.PauliString) -> List[int]:
 class TableauSnapshot:
     tick_index: int
     n: int
-    stabiliser_sections: List[
-        Tuple[Union[CommutingPauliBasis, AntiCommutingPauliBasis], List[int]]
+    stabiliser_sections: list[
+        tuple[CommutingPauliBasis | AntiCommutingPauliBasis, list[int]]
     ]
-    logical_descriptions: List[str]
+    logical_descriptions: list[str]
 
     def to_ansi(self) -> str:
-        out: List[str] = []
+        out: list[str] = []
         out.append(f"Snapshot @ TICK #{self.tick_index}")
         out.append("Stabilisers:")
         if not self.stabiliser_sections:
@@ -74,8 +76,8 @@ class TableauVisualiser:
     def __init__(
         self,
         circuit: stim.Circuit,
-        commuting_bases: List[CommutingPauliBasis],
-        anticommuting_bases: Dict[str, AntiCommutingPauliBasis],
+        commuting_bases: list[CommutingPauliBasis],
+        anticommuting_bases: dict[str, AntiCommutingPauliBasis],
     ) -> None:
         self.circuit = circuit
         self.instructions = list(circuit)
@@ -84,8 +86,7 @@ class TableauVisualiser:
         for inst in self.instructions:
             for t in inst.targets_copy():
                 if t.is_qubit_target:
-                    if t.value > max_q:
-                        max_q = t.value
+                    max_q = max(max_q, t.value)
         self.n = max_q + 1
         # Sort commuting bases by priority descending
         self.commuting_bases = list(commuting_bases)
@@ -123,21 +124,21 @@ class TableauVisualiser:
                 return True
         return False
 
-    def _current_stabilizer_rows(self) -> List[List[int]]:
+    def _current_stabilizer_rows(self) -> list[list[int]]:
         stabs = self.sim.canonical_stabilizers()
         return [pauli_string_to_row(p) for p in stabs]
 
     def snapshot(self) -> TableauSnapshot:
         S_rows = self._current_stabilizer_rows()
 
-        chosen_basis_rows: List[List[int]] = []
+        chosen_basis_rows: list[list[int]] = []
 
         # Commuting bases membership
-        sections: List[
-            Tuple[CommutingPauliBasis, AntiCommutingPauliBasis], List[int]
+        sections: list[
+            tuple[CommutingPauliBasis, AntiCommutingPauliBasis], list[int]
         ] = []
         for b in self.commuting_bases[::-1]:
-            idxs: List[int] = []
+            idxs: list[int] = []
             for j, p in enumerate(b.rows):
                 row = p.to_2n()
                 if not gf2_is_in_span(row, S_rows):
@@ -150,7 +151,7 @@ class TableauVisualiser:
             sections.append((b, idxs))
 
         # Anti-commuting bases intersections
-        logical_desc: List[str] = []
+        logical_desc: list[str] = []
         for label, anti in self.anticommuting_bases.items():
             # M = [B; S], left-nullspace yields combinations
             B = anti.stacked_2n()
@@ -160,7 +161,7 @@ class TableauVisualiser:
                 continue
             p = len(B)
             kx = len(anti.X_rows)
-            Y_acc: List[List[int]] = []
+            Y_acc: list[list[int]] = []
             for w in L:
                 if len(w) != len(M):
                     continue
@@ -173,7 +174,7 @@ class TableauVisualiser:
                 if gf2_rank(Y_acc + [yi]) == gf2_rank(Y_acc):
                     continue
                 Y_acc.append(yi)
-                parts: List[str] = []
+                parts: list[str] = []
                 for j in range(kx):
                     if x[j] & 1:
                         parts.append(f"X{j + 1}")

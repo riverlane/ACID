@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Set, Tuple
 
 from acid.analysis.schedule import analyze_layers
-from acid.scheduling.types import SyndromeExtractionLayer
 from acid.defects.defective_code import DefectiveCode
 from acid.pauli import PauliString
+from acid.scheduling.types import SyndromeExtractionLayer
 
 from .rec_log import MeasurementLog
 from .schedule_index import ScheduleIndex
@@ -21,7 +20,7 @@ def _lin_idx(L: int, r: int, t: int) -> int:
 def plan_product_detectors(
     *,
     dcode: DefectiveCode,
-    layers: List[SyndromeExtractionLayer],
+    layers: list[SyndromeExtractionLayer],
     sched: ScheduleIndex,
     log: MeasurementLog,
     R: int,
@@ -60,16 +59,14 @@ def plan_product_detectors(
         sorted_completion_times = sorted(
             prod_plan.completions.get(current_product.label, [])
         )
-        completions: List[
-            Tuple[
+        completions: list[
+            tuple[
                 str,  # kind
-                Optional[Tuple[int, int]],  # (round, layer) product completion time
-                Dict[
-                    str, Tuple[int, int]
+                tuple[int, int] | None,  # (round, layer) product completion time
+                dict[
+                    str, tuple[int, int]
                 ],  # member -> most recent (round, layer) contraction time
-                Optional[
-                    Tuple[int, int]
-                ],  # earliest among those most recent contraction times
+                tuple[int, int] | None,  # earliest among those most recent contraction times
             ]
         ] = []
         completions.append(("init_mpp", None, {}, None))
@@ -77,7 +74,7 @@ def plan_product_detectors(
             for completion_time in sorted_completion_times:
                 # we want the last time each member was measured in this round, up to the
                 # completion time.
-                member_to_lastest_time_measured: Dict[str, Tuple[int, int]] = {}
+                member_to_lastest_time_measured: dict[str, tuple[int, int]] = {}
                 for product_member in members:
                     ts_all = sched.contracting_ts.get(product_member, [])
                     ts_le = [t for t in ts_all if t <= completion_time]
@@ -135,11 +132,11 @@ def plan_product_detectors(
         def active_support_at(
             r: int,
             t: int,
-            cqi: Dict[str, Tuple[int, int]],
-            cqi1: Dict[str, Tuple[int, int]],
-        ) -> Set[int]:
+            cqi: dict[str, tuple[int, int]],
+            cqi1: dict[str, tuple[int, int]],
+        ) -> set[int]:
             idx = _lin_idx(L, r, t)
-            acc: Set[int] = set()
+            acc: set[int] = set()
             for m in members:
                 # previous/next contraction indices
                 prev_rt = cqi.get(m)
@@ -186,8 +183,8 @@ def plan_product_detectors(
             cqi = latest_a  # may be empty for init
             cqi1 = latest_b  # may be empty for final
 
-            recs: List[int] = []
-            intervening_layers: List[Tuple[int, int]] = []
+            recs: list[int] = []
+            intervening_layers: list[tuple[int, int]] = []
 
             if debug:
                 try:
@@ -217,8 +214,8 @@ def plan_product_detectors(
 
             # (2) For each layer in the window, add same-basis root recs on the
             # active propagated product support.
-            layer_summaries: List[
-                Tuple[int, int, int, int]
+            layer_summaries: list[
+                tuple[int, int, int, int]
             ] = []  # (r,t, |S|, added_recs)
             for idx in range(A_lin + 1, min(B_next_lin, R * L) + 1):
                 if idx >= R * L:
@@ -289,14 +286,14 @@ def plan_product_detectors(
 
 @dataclass
 class ProductPlan:
-    members: Dict[str, Set[str]]  # prod_label -> set(member labels)
-    completions: Dict[
-        str, List[int]
+    members: dict[str, set[str]]  # prod_label -> set(member labels)
+    completions: dict[
+        str, list[int]
     ]  # prod_label -> list of layer indices where completed
 
 
 def build_product_plan(
-    dcode: DefectiveCode, layers: List[SyndromeExtractionLayer]
+    dcode: DefectiveCode, layers: list[SyndromeExtractionLayer]
 ) -> ProductPlan:
     """
     Use analyze_layers to determine per-layer product completion points.
@@ -305,9 +302,9 @@ def build_product_plan(
     needed for that product have been measured by layer t in a round.
     """
     prods = dcode.products_list()
-    prod_members: Dict[str, Set[str]] = {
+    prod_members: dict[str, set[str]] = {
         p.label: set(p.members) for p in prods if len(p.members) > 1
     }
     result = analyze_layers(prod_members, layers, interesting_labels=None)
-    completions: Dict[str, List[int]] = result["product_completions"]
+    completions: dict[str, list[int]] = result["product_completions"]
     return ProductPlan(members=prod_members, completions=completions)

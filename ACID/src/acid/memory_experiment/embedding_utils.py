@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from typing import Iterable, List, Tuple
+from collections.abc import Iterable
 
 from acid.embedding import Embedding
 
 
 def data_bbox_xy(
     embedding: Embedding, data_ids: Iterable[int]
-) -> Tuple[float, float, float, float]:
+) -> tuple[float, float, float, float]:
     """Return (min_x, min_y, max_x, max_y) bbox of given data qubits using embedding coords."""
-    xs: List[float] = []
-    ys: List[float] = []
+    xs: list[float] = []
+    ys: list[float] = []
     for q in data_ids:
         a, b, c = embedding.id_to_tuple(int(q))
         x, y = embedding.coords(a, b, c)
@@ -28,7 +28,7 @@ def place_ancillas_right_of_bbox(
     *,
     dx: float = 1.0,
     dy: float = 1.0,
-) -> Tuple[List[int], List[int], List[Tuple[int, float, float]]]:
+) -> tuple[list[int], list[int], list[tuple[int, float, float]]]:
     """
     Return (zero_ancilla_ids, plus_ancilla_ids, qubit_coord_triplets) placing 2k ancillas in a vertical column
     to the right of the data bbox with a blank row between each pair.
@@ -52,7 +52,7 @@ def place_ancillas_right_of_bbox(
     x0, y0, x1, y1 = data_bbox_xy(embedding, data_ids)
     x_right = x1 + abs(dx)
     y_min = y0
-    coords: List[Tuple[int, float, float]] = []
+    coords: list[tuple[int, float, float]] = []
     for i in range(k):
         # place zero-ancilla then plus-ancilla with a blank row (dy) between pairs
         y_z = y_min + float(3 * i) * abs(dy)

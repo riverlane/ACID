@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from typing import List, Tuple
 import networkx as nx
 
+from acid.base_code import BaseCode, StabiliserShape
 from acid.codes.bb.algebra import GroupRing, Monomial
 from acid.embedding import SquareGridEmbedding
-from acid.base_code import BaseCode, StabiliserShape
 
 
 def _path_template(n: int = 4) -> nx.Graph:
@@ -19,7 +18,7 @@ def _path_template(n: int = 4) -> nx.Graph:
 
 def build_toric_code(
     l: int, m: int, *, connectivity: str = "hex", sec_length: int = 2
-) -> Tuple[BaseCode, SquareGridEmbedding, List[Tuple[int, int, str]]]:
+) -> tuple[BaseCode, SquareGridEmbedding, list[tuple[int, int, str]]]:
     """
     Build a toric code (periodic l×m) using two-term balanced-product definitions:
 
@@ -46,8 +45,8 @@ def build_toric_code(
 
     # Local shape for X and Z stabilisers: 4-node path
     path4 = _path_template(4)
-    shapes: List[StabiliserShape] = []
-    connections: List[Tuple[int, int, str]] = []
+    shapes: list[StabiliserShape] = []
+    connections: list[tuple[int, int, str]] = []
 
     for ax in range(l):
         for ay in range(m):

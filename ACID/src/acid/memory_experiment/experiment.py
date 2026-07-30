@@ -1,22 +1,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
 
-from acid.embedding import Embedding
 from acid.defects.defective_code import DefectiveCode
 from acid.defects.syndrome_extraction_circuit import SyndromeExtractionCircuit
-
+from acid.embedding import Embedding
 from acid.memory_experiment.builder import StimBuilder
 from acid.memory_experiment.embedding_utils import place_ancillas_right_of_bbox
 from acid.memory_experiment.noise import NoiseModel, NoNoiseModel
 
+from .observables import plan_observables
+from .product_detectors import plan_product_detectors
 from .rec_log import MeasurementLog
+from .registry import DetectorRegistry
 from .schedule_index import ScheduleIndex
 from .single_detectors import plan_quasi_detectors
-from .product_detectors import plan_product_detectors
-from .observables import plan_observables
-from .registry import DetectorRegistry
 
 
 @dataclass
@@ -51,18 +49,18 @@ class MemoryExperiment:
         self.L = len(self.circuit.layers)
         self.registry = DetectorRegistry()
 
-    def _root_qubits_by_basis(self, layer) -> Tuple[List[int], List[int]]:
+    def _root_qubits_by_basis(self, layer) -> tuple[list[int], list[int]]:
         return layer.roots_by_basis()
 
-    def _root_qubit_map(self, layer) -> Dict[int, str]:
-        m: Dict[int, str] = {}
+    def _root_qubit_map(self, layer) -> dict[int, str]:
+        m: dict[int, str] = {}
         for stab, shed in layer.chosen.items():
             root_q = stab.qubit_map[shed.root]
             m[root_q] = stab.label
         return m
 
-    def _entangling_pairs(self) -> List[Tuple[int, int]]:
-        pairs: List[Tuple[int, int]] = []
+    def _entangling_pairs(self) -> list[tuple[int, int]]:
+        pairs: list[tuple[int, int]] = []
         for i in range(self.k):
             for q in self._Lx[i].x_support():
                 pairs.append((-(i + 1), int(q)))
@@ -88,9 +86,9 @@ class MemoryExperiment:
 
         # Ancillas (only if doing state prep)
         n = self.dcode.base_code.num_qubits
-        zeros: List[int] = []
-        plus: List[int] = []
-        anc_coords: List[Tuple[int, float, float]] = []
+        zeros: list[int] = []
+        plus: list[int] = []
+        anc_coords: list[tuple[int, float, float]] = []
         if include_state_prep:
             zeros, plus, anc_coords = place_ancillas_right_of_bbox(
                 self.embedding,
@@ -128,7 +126,7 @@ class MemoryExperiment:
                 log.record_init_mpp("Z", lab, rec)
 
         # Entangle (noiseless), only if doing state prep
-        ent_pairs: List[Tuple[int, int]] = []
+        ent_pairs: list[tuple[int, int]] = []
         if include_state_prep:
             ent_pairs_placeholder = self._entangling_pairs()
             anc_zero = zeros
@@ -214,8 +212,8 @@ class MemoryExperiment:
             stim_builder.tick()
 
         # Ancilla observables (noiseless) — record final ancilla recs, but don't emit yet
-        z_anc_recs: List[int] = []
-        x_anc_recs: List[int] = []
+        z_anc_recs: list[int] = []
+        x_anc_recs: list[int] = []
         if include_state_prep:
             if zeros and include_z_detectors:
                 z_anc_recs = stim_builder.MZ(zeros)

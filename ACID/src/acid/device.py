@@ -6,21 +6,21 @@ Produces a Stim text prefix with qubit coords, connection sheets per class,
 and optional polygons for untouched/anticommuting/product/gauge regions.
 """
 
-from dataclasses import dataclass
-from typing import Iterable, List, Set, Tuple, Dict
 import math
+from collections.abc import Iterable
+from dataclasses import dataclass
 
 from .embedding import Embedding
 
 
 @dataclass(frozen=True)
 class Connection:
-    a: Tuple[int, int, int]
-    b: Tuple[int, int, int]
+    a: tuple[int, int, int]
+    b: tuple[int, int, int]
     z: int = 0
     defective: bool = False
 
-    def key(self) -> Tuple[Tuple[int, int, int], Tuple[int, int, int]]:
+    def key(self) -> tuple[tuple[int, int, int], tuple[int, int, int]]:
         return tuple(sorted((self.a, self.b)))  # undirected
 
 
@@ -29,24 +29,24 @@ class DeviceVisualisation:
     n_qubits: int
     embedding: Embedding  # provides qubit_id, coords, id_to_tuple
     qubit_colouring: dict[int, str]  # qubit_id -> colour
-    connections: List[Tuple[int, int, str]]  # qubit_1, qubit_2, connection_class
-    defective_qubits: Set[
+    connections: list[tuple[int, int, str]]  # qubit_1, qubit_2, connection_class
+    defective_qubits: set[
         int
     ]  # qubit_ids. mark these qubits as defective in the .stim file
-    defective_connections: Set[
-        Tuple[int, int, str]
+    defective_connections: set[
+        tuple[int, int, str]
     ]  # (qubit_1, qubit_2, connection_class). mark as defective in the .stim file
-    connection_class_colours: Dict[str, str]  # connection_class -> colour
+    connection_class_colours: dict[str, str]  # connection_class -> colour
     # Optional polygon overlays per category: list of ('X'|'Z', [qubit_ids...])
-    polygons_untouched: List[Tuple[str, Iterable[int]]] = None
-    polygons_anticomm: List[Tuple[str, Iterable[int]]] = None
-    polygons_products: List[Tuple[str, Iterable[int]]] = None
-    polygons_gauge: List[Tuple[str, Iterable[int]]] = None
+    polygons_untouched: list[tuple[str, Iterable[int]]] = None
+    polygons_anticomm: list[tuple[str, Iterable[int]]] = None
+    polygons_products: list[tuple[str, Iterable[int]]] = None
+    polygons_gauge: list[tuple[str, Iterable[int]]] = None
 
     def stim_with_overlays(
         self, include_reset: bool = True, *, debug: bool = False
     ) -> str:
-        lines: List[str] = []
+        lines: list[str] = []
         # Dynamic legend/comment header
         lines.append("# Legend")
         lines.append("# Qubits: L (c=0) = gold, R (c=1) = mediumseagreen")
@@ -55,7 +55,7 @@ class DeviceVisualisation:
             lines.append(f"#  - {name}: {colour}")
 
         # Prepare polygon categories first so all SHEET statements can appear at top
-        cats: List[Tuple[str, List[Tuple[str, Iterable[int]]]]] = [
+        cats: list[tuple[str, list[tuple[str, Iterable[int]]]]] = [
             ("UNTX", []),
             ("UNTZ", []),
             ("ANTIX", []),
@@ -67,7 +67,7 @@ class DeviceVisualisation:
         ]
 
         def assign_items(
-            items: List[Tuple[str, Iterable[int]]], x_name: str, z_name: str
+            items: list[tuple[str, Iterable[int]]], x_name: str, z_name: str
         ):
             if not items:
                 return
@@ -95,7 +95,7 @@ class DeviceVisualisation:
             f"##! EMBEDDING TYPE=TORUS LX={self.embedding.width} LY={self.embedding.height}"
         )
         # Build sheet layout: QUBITS (0), connection class sheets (1..C), then polygon sheets
-        sheet_defs: List[Tuple[str, int]] = [("QUBITS", 0)]
+        sheet_defs: list[tuple[str, int]] = [("QUBITS", 0)]
         base = 1
         for i, name in enumerate(self.connection_class_colours.keys()):
             sheet_defs.append((name, base + i))
@@ -132,7 +132,7 @@ class DeviceVisualisation:
             lines.append(f"QUBIT_COORDS({coords[0]:.6g}, {coords[1]:.6g}) {qid}")
 
         # Prepare optional initial tick/reset; appended after overlays if enabled
-        tick_reset: List[str] = []
+        tick_reset: list[str] = []
         if include_reset:
             tick_reset.append("TICK")
             all_ids = [str(qid) for qid in range(self.n_qubits)]
@@ -141,7 +141,7 @@ class DeviceVisualisation:
 
         def emit_conn_set(
             sheet: str,
-            conns: List[Tuple[int, int, str]],
+            conns: list[tuple[int, int, str]],
             colour: str | None = None,
             defective: bool = False,
         ):
@@ -202,14 +202,14 @@ class DeviceVisualisation:
             lines.append(f"##! HIGHLIGHT TARGET=QUBIT QUBITS={q_list} COLOR=red")
         return "\n".join(lines) + "\n"
 
-    def _order_polygon_clockwise(self, qids: Iterable[int]) -> List[int]:
+    def _order_polygon_clockwise(self, qids: Iterable[int]) -> list[int]:
         """Return qubit ids ordered clockwise around their centroid.
 
         Uses the embedding's coordinates for geometry. If there are fewer than
         3 unique vertices, returns the input order (deduplicated).
         """
-        pts: List[Tuple[int, float, float]] = []
-        seen: Set[int] = set()
+        pts: list[tuple[int, float, float]] = []
+        seen: set[int] = set()
         for q in qids:
             qi = int(q)
             if qi in seen:
@@ -223,7 +223,7 @@ class DeviceVisualisation:
         cx = sum(p[1] for p in pts) / len(pts)
         cy = sum(p[2] for p in pts) / len(pts)
 
-        def angle(p: Tuple[int, float, float]) -> float:
+        def angle(p: tuple[int, float, float]) -> float:
             return math.atan2(p[2] - cy, p[1] - cx)
 
         # Sort by angle descending for clockwise order; tie-break by radius

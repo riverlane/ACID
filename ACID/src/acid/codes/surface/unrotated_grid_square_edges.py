@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
 import networkx as nx
 
 from acid.base_code import BaseCode, StabiliserShape
@@ -18,7 +17,7 @@ def _cycle4() -> nx.Graph:
 
 def build_unrotated_surface_grid_square_edges_code(
     d: int,
-) -> Tuple[BaseCode, Dict[Tuple[int, int], int]]:
+) -> tuple[BaseCode, dict[tuple[int, int], int]]:
     """
     Distance-d unrotated surface (grid connectivity with square edges to the boundary).
 
@@ -37,7 +36,7 @@ def build_unrotated_surface_grid_square_edges_code(
     """
     W = 2 * d + 1
     H = 2 * d + 1
-    coord_to_qid: Dict[Tuple[int, int], int] = {}
+    coord_to_qid: dict[tuple[int, int], int] = {}
     qid = 0
     # Place qubits at (even,even) and (odd,odd) within [0..2d], excluding corners
     for x in range(W):
@@ -57,7 +56,7 @@ def build_unrotated_surface_grid_square_edges_code(
     G = nx.Graph()
     G.add_nodes_from(range(qid))
 
-    shapes: List[StabiliserShape] = []
+    shapes: list[StabiliserShape] = []
 
     cyc4 = _cycle4()
 

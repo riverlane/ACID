@@ -4,30 +4,27 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from acid.defects.defective_code import DefectiveCode
+import json
+from dataclasses import dataclass
+from typing import Any
+
+from acid.analysis.schedule import analyze_layers
 from acid.pauli import AntiCommutingPauliBasis, CommutingPauliBasis, PauliString
 from acid.scheduling.types import SyndromeExtractionLayer
 
 
-from dataclasses import dataclass
-from typing import Dict, List, Tuple, Any
-
-import json
-
-from acid.analysis.schedule import analyze_layers
-
-
 @dataclass
 class SyndromeExtractionCircuit:
-    layers: List[SyndromeExtractionLayer]
+    layers: list[SyndromeExtractionLayer]
     solve_time: float
     L: int
-    dcode: "DefectiveCode"
+    dcode: DefectiveCode
 
     def to_memory_stim(self, cycles: int) -> str:
         # Generalized schedule emitter for arbitrary number of layers
         if not self.layers:
             return ""
-        lines: List[str] = []
+        lines: list[str] = []
         n_qubits = self.dcode.base_code.num_qubits
 
         # Reset: RX on X-roots of layer 0, RZ everywhere else
@@ -66,7 +63,7 @@ class SyndromeExtractionCircuit:
         return "\n".join(lines) + "\n"
 
     # --- Serialization / Deserialization ---
-    def to_layers_dict(self) -> Dict[str, Any]:
+    def to_layers_dict(self) -> dict[str, Any]:
         """Serialize the circuit to a layers snapshot compatible with paper_data.
 
         Structure matches paper_data/bin/run_unit.py's ad hoc writer, so it can
@@ -82,7 +79,7 @@ class SyndromeExtractionCircuit:
         analysis = analyze_layers(prod_members, self.layers, interesting_labels=None)
         all_labels = list(getattr(self.dcode, "quasi_labels", []))  # type: ignore[attr-defined]
 
-        out_layers: List[Dict[str, Any]] = []
+        out_layers: list[dict[str, Any]] = []
         for t, Lk in enumerate(self.layers):
             chosen_ids = {stab.label: int(shed.id) for stab, shed in Lk.chosen.items()}
             full_map = {
@@ -130,13 +127,13 @@ class SyndromeExtractionCircuit:
     @classmethod
     def from_layers_dict(
         cls,
-        snapshot: Dict[str, Any],
-        dcode: "DefectiveCode",
+        snapshot: dict[str, Any],
+        dcode: DefectiveCode,
         *,
         verify: bool = True,
         strict: bool = True,
         backend: str = "solver",
-    ) -> "SyndromeExtractionCircuit":
+    ) -> SyndromeExtractionCircuit:
         """Rebuild a circuit from a layers snapshot.
 
         - verify=True: checks layer compatibility against a freshly computed
@@ -147,7 +144,7 @@ class SyndromeExtractionCircuit:
           the layer.code; 'light' builds a minimal stub object with the required
           attributes for downstream end-cycle routines.
         """
-        from acid.scheduling.types import StabiliserTemplate, Stabiliser
+        from acid.scheduling.types import Stabiliser, StabiliserTemplate
         from acid.solver.schedule_solver import ScheduleSolver
 
         L_val = int(snapshot.get("L", 0))
@@ -171,10 +168,10 @@ class SyndromeExtractionCircuit:
         valid_labels = sorted(list(set_in & set_dc)) if not strict else labels_in
 
         # Build stabilisers map by label without solving
-        triplets: List[Tuple[StabiliserTemplate, List[int], str]] = getattr(
+        triplets: list[tuple[StabiliserTemplate, list[int], str]] = getattr(
             dcode, "triplets", []
         )  # type: ignore[attr-defined]
-        stab_by_label: Dict[str, Stabiliser] = {}
+        stab_by_label: dict[str, Stabiliser] = {}
         for tmpl, qmap, lab in triplets:
             stab_by_label[lab] = tmpl.make_stabiliser(qmap, lab)
 
@@ -185,14 +182,14 @@ class SyndromeExtractionCircuit:
                 triplets,
                 anticommutation_graph=getattr(dcode, "anticomm_graph", None),  # type: ignore[attr-defined]
                 product_stabilisers=getattr(
-                    dcode, "products", getattr(dcode, "products_list", lambda: [])()
+                    dcode, "products", getattr(dcode, "products_list", list)()
                 ),  # type: ignore[attr-defined]
             )
             code_for_layer = solver
         else:
             # Minimal stub providing .stabilisers and .num_qubits
             class _StubCode:
-                def __init__(self, stab_map: Dict[str, Stabiliser], n: int):
+                def __init__(self, stab_map: dict[str, Stabiliser], n: int):
                     self.stabilisers = stab_map
                     self.num_qubits = int(n)
 
@@ -200,10 +197,10 @@ class SyndromeExtractionCircuit:
                 stab_by_label, getattr(dcode.base_code, "num_qubits", 0)
             )  # type: ignore[attr-defined]
 
-        layers_out: List[SyndromeExtractionLayer] = []
+        layers_out: list[SyndromeExtractionLayer] = []
         for ent in layers_in:
             sched_map = ent.get("schedule_id_by_label", {})
-            chosen: Dict[Stabiliser, Any] = {}
+            chosen: dict[Stabiliser, Any] = {}
             for lab in valid_labels:
                 sid = sched_map.get(lab, None)
                 if sid is None:
@@ -245,20 +242,20 @@ class SyndromeExtractionCircuit:
     def from_layers_json(
         cls,
         path: str,
-        dcode: "DefectiveCode",
+        dcode: DefectiveCode,
         *,
         verify: bool = True,
         strict: bool = True,
         backend: str = "solver",
-    ) -> "SyndromeExtractionCircuit":
+    ) -> SyndromeExtractionCircuit:
         with open(path, "r") as f:
             snapshot = json.load(f)
         return cls.from_layers_dict(
             snapshot, dcode, verify=verify, strict=strict, backend=backend
         )
 
-    def commuting_bases(self) -> List[CommutingPauliBasis]:
-        bases: List[CommutingPauliBasis] = []
+    def commuting_bases(self) -> list[CommutingPauliBasis]:
+        bases: list[CommutingPauliBasis] = []
         bases.append(self.dcode.midcycle_untouched_stabilisers())
         prod = self.dcode.midcycle_product_stabilisers()
         if prod is not None:
@@ -279,8 +276,8 @@ class SyndromeExtractionCircuit:
         bases.sort(key=lambda b: b.priority, reverse=True)
         return bases
 
-    def anticommuting_bases(self) -> Dict[str, AntiCommutingPauliBasis]:
-        bases: Dict[str, AntiCommutingPauliBasis] = {}
+    def anticommuting_bases(self) -> dict[str, AntiCommutingPauliBasis]:
+        bases: dict[str, AntiCommutingPauliBasis] = {}
         Lx_mid, Lz_mid = self.dcode._logical_pairs_mid_paulis()
         Gx_mid, Gz_mid = self.dcode._gauge_pairs_mid_paulis()
 
@@ -292,8 +289,8 @@ class SyndromeExtractionCircuit:
         )
         # Per-layer propagated logicals
         for idx, Lk in enumerate(self.layers):
-            Xp: List[PauliString] = []
-            Zp: List[PauliString] = []
+            Xp: list[PauliString] = []
+            Zp: list[PauliString] = []
             for p in Lx_mid:
                 Xp.append(Lk.propagate(p))
             for p in Lz_mid:

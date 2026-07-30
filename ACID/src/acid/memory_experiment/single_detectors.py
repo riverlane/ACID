@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple
 
+from acid.defects.defective_code import DefectiveCode
 from acid.pauli import PauliString
 from acid.scheduling.types import SyndromeExtractionLayer
-from acid.defects.defective_code import DefectiveCode
 
 from .rec_log import MeasurementLog
 from .schedule_index import ScheduleIndex
@@ -16,29 +15,29 @@ class DetectorInfo:
     id: int
     kind: str  # 'quasi' | 'product'
     label: str
-    basis: Optional[str]  # 'X' | 'Z' for quasi; None for product
-    start: Dict[str, object]
-    end: Dict[str, object]
-    intervening: List[Tuple[int, int]] = field(default_factory=list)
-    recs: List[int] = field(default_factory=list)
+    basis: str | None  # 'X' | 'Z' for quasi; None for product
+    start: dict[str, object]
+    end: dict[str, object]
+    intervening: list[tuple[int, int]] = field(default_factory=list)
+    recs: list[int] = field(default_factory=list)
 
 
 @dataclass
 class DetectorPlan:
-    rec_sets: List[List[int]] = field(default_factory=list)
-    infos: List[DetectorInfo] = field(default_factory=list)
+    rec_sets: list[list[int]] = field(default_factory=list)
+    infos: list[DetectorInfo] = field(default_factory=list)
 
 
 def plan_quasi_detectors(
     *,
     dcode: DefectiveCode,
-    layers: List[SyndromeExtractionLayer],
+    layers: list[SyndromeExtractionLayer],
     sched: ScheduleIndex,
     log: MeasurementLog,
     R: int,
     include_x: bool = True,
     include_z: bool = True,
-    filter_labels: Optional[Set[str]] = None,
+    filter_labels: set[str] | None = None,
 ) -> DetectorPlan:
     plan = DetectorPlan()
     det_id = 0
@@ -61,7 +60,7 @@ def plan_quasi_detectors(
         )
 
         # Contracting events across rounds
-        events: List[Tuple[str, object]] = []
+        events: list[tuple[str, object]] = []
         events.append(("init", None))
         rt_list = sched.rounds_for_label(lab, R)
         for r, t in rt_list:
@@ -78,12 +77,12 @@ def plan_quasi_detectors(
                 continue
 
             # Sentinel (r,t) to enumerate intervening schedule layers
-            a_rt: Optional[Tuple[int, int]] = (1, -1) if A[0] == "init" else A[1]  # type: ignore[assignment]
-            b_rt: Optional[Tuple[int, int]] = (R, L) if B[0] == "final" else B[1]  # type: ignore[assignment]
+            a_rt: tuple[int, int] | None = (1, -1) if A[0] == "init" else A[1]  # type: ignore[assignment]
+            b_rt: tuple[int, int] | None = (R, L) if B[0] == "final" else B[1]  # type: ignore[assignment]
 
             # Collect recs
-            recs: List[int] = []
-            intervening: List[Tuple[int, int]] = []
+            recs: list[int] = []
+            intervening: list[tuple[int, int]] = []
             if A[0] == "init":
                 rec_init = log.init_mpp[basis][lab]
                 recs.append(int(rec_init))

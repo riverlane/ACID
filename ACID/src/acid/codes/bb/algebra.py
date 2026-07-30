@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Iterable, Iterator, Tuple, FrozenSet
 import re
+from collections.abc import Iterable, Iterator
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
@@ -13,7 +13,7 @@ class GroupRing:
     l: int
     m: int
 
-    def canonical(self, a: int, b: int) -> Tuple[int, int]:
+    def canonical(self, a: int, b: int) -> tuple[int, int]:
         al = a % self.l
         bm = b % self.m
         return al, bm
@@ -30,16 +30,16 @@ class Monomial:
         object.__setattr__(self, "a", ca)
         object.__setattr__(self, "b", cb)
 
-    def __mul__(self, other: "Monomial") -> "Monomial":
+    def __mul__(self, other: Monomial) -> Monomial:
         if self.ring != other.ring:
             raise ValueError("Mismatched group rings")
         return Monomial(self.a + other.a, self.b + other.b, self.ring)
 
-    def inv(self) -> "Monomial":
+    def inv(self) -> Monomial:
         return Monomial(-self.a, -self.b, self.ring)
 
     @classmethod
-    def from_str(cls, s: str, ring: GroupRing) -> "Monomial":
+    def from_str(cls, s: str, ring: GroupRing) -> Monomial:
         t = s.strip()
         m = re.fullmatch(r"x\^(\d+)y\^(\d+)", t)
         if not m:
@@ -68,7 +68,7 @@ class Monomial:
 
 @dataclass(frozen=True)
 class Polynomial:
-    terms: FrozenSet[Monomial]
+    terms: frozenset[Monomial]
     ring: GroupRing
 
     def __post_init__(self) -> None:
@@ -86,12 +86,12 @@ class Polynomial:
 
     @staticmethod
     def from_exponents(
-        exps: Iterable[Tuple[int, int]], ring: GroupRing
-    ) -> "Polynomial":
+        exps: Iterable[tuple[int, int]], ring: GroupRing
+    ) -> Polynomial:
         return Polynomial(frozenset(Monomial(a, b, ring) for a, b in exps), ring)
 
     @staticmethod
-    def from_string(s: str, ring: GroupRing) -> "Polynomial":
+    def from_string(s: str, ring: GroupRing) -> Polynomial:
         t = s.strip().replace(" ", "")
         if t == "" or t == "0":
             return Polynomial(frozenset(), ring)
@@ -110,7 +110,7 @@ class Polynomial:
     def __len__(self) -> int:
         return len(self.terms)
 
-    def add(self, other: "Polynomial") -> "Polynomial":
+    def add(self, other: Polynomial) -> Polynomial:
         if self.ring != other.ring:
             raise ValueError("Mismatched group rings")
         # Symmetric difference of term sets (mod 2)
@@ -123,7 +123,7 @@ class Polynomial:
                 s.add(key)
         return Polynomial(frozenset(Monomial(a, b, self.ring) for a, b in s), self.ring)
 
-    def mul(self, other: "Polynomial") -> "Polynomial":
+    def mul(self, other: Polynomial) -> Polynomial:
         if self.ring != other.ring:
             raise ValueError("Mismatched group rings")
         # Distribute and cancel even multiplicities (mod 2)
@@ -139,7 +139,7 @@ class Polynomial:
             self.ring,
         )
 
-    def left_multiply(self, mono: Monomial) -> "Polynomial":
+    def left_multiply(self, mono: Monomial) -> Polynomial:
         if mono.ring != self.ring:
             raise ValueError("Mismatched group rings")
         return Polynomial(
@@ -149,7 +149,7 @@ class Polynomial:
             self.ring,
         )
 
-    def inverse(self) -> "Polynomial":
+    def inverse(self) -> Polynomial:
         return Polynomial(
             frozenset(
                 Monomial((-t.a) % self.ring.l, (-t.b) % self.ring.m, self.ring)

@@ -1,28 +1,27 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Set, Tuple
 
-from acid.scheduling.types import SyndromeExtractionLayer
 from acid.defects.defective_code import DefectiveCode
+from acid.scheduling.types import SyndromeExtractionLayer
 
 
 @dataclass
 class ScheduleIndex:
     dcode: DefectiveCode
-    layers: List[SyndromeExtractionLayer]
+    layers: list[SyndromeExtractionLayer]
 
     def __post_init__(self) -> None:
         self.L = len(self.layers)
         # Per-layer measured labels and label->root maps
-        self.per_layer_labels: List[Set[str]] = []
-        self.label_to_root: List[Dict[str, int]] = []
-        self.root_to_label: List[Dict[int, str]] = []
+        self.per_layer_labels: list[set[str]] = []
+        self.label_to_root: list[dict[str, int]] = []
+        self.root_to_label: list[dict[int, str]] = []
         for Lk in self.layers:
             labs = set(stab.label for stab in Lk.chosen.keys())
             self.per_layer_labels.append(labs)
-            lab_to_root: Dict[str, int] = {}
-            root_to_lab: Dict[int, str] = {}
+            lab_to_root: dict[str, int] = {}
+            root_to_lab: dict[int, str] = {}
             for stab, shed in Lk.chosen.items():
                 rq = stab.qubit_map[shed.root]
                 lab_to_root[stab.label] = rq
@@ -31,34 +30,34 @@ class ScheduleIndex:
             self.root_to_label.append(root_to_lab)
 
         # Quasi basis map
-        self.basis_of: Dict[str, str] = {}
+        self.basis_of: dict[str, str] = {}
         for lab in self.dcode.quasi_labels:  # type: ignore[attr-defined]
             typ, _ = self.dcode.quasi_support(lab)
             self.basis_of[lab] = typ
         # Basis label sets for MPP events
-        self.labels_x: Set[str] = {lab for lab, b in self.basis_of.items() if b == "X"}
-        self.labels_z: Set[str] = {lab for lab, b in self.basis_of.items() if b == "Z"}
+        self.labels_x: set[str] = {lab for lab, b in self.basis_of.items() if b == "X"}
+        self.labels_z: set[str] = {lab for lab, b in self.basis_of.items() if b == "Z"}
 
         # Contracting layer indices per label (within one schedule period)
-        self.contracting_ts: Dict[str, List[int]] = {}
+        self.contracting_ts: dict[str, list[int]] = {}
         for t, labs in enumerate(self.per_layer_labels):
             for lab in labs:
                 self.contracting_ts.setdefault(lab, []).append(t)
 
         # Anticommutation neighbors
         G = self.dcode.anticommutation_graph()
-        self.neighbors: Dict[str, Set[str]] = {}
+        self.neighbors: dict[str, set[str]] = {}
         for u, v in G.edges():
             self.neighbors.setdefault(u, set()).add(v)
             self.neighbors.setdefault(v, set()).add(u)
 
-    def rounds_for_label(self, lab: str, R: int) -> List[Tuple[int, int]]:
+    def rounds_for_label(self, lab: str, R: int) -> list[tuple[int, int]]:
         """Return (r,t) pairs for rounds 1..R where label lab contracts (measured)."""
         ts = self.contracting_ts.get(lab, [])
         return [(r, t) for r in range(1, R + 1) for t in ts]
 
     def any_anticomm_measured_between(
-        self, lab: str, A: Tuple[int, int], B: Tuple[int, int]
+        self, lab: str, A: tuple[int, int], B: tuple[int, int]
     ) -> bool:
         """
         Return True if any layer strictly between (A,B) measures a quasi that anticommutes with 'lab'.
@@ -81,7 +80,7 @@ class ScheduleIndex:
 
     # --- Unified anticomm guard across init/final and schedule layers ---
     def _event_index(
-        self, kind: str, basis: Optional[str], rt: Optional[Tuple[int, int]], R: int
+        self, kind: str, basis: str | None, rt: tuple[int, int] | None, R: int
     ) -> int:
         """Map an anchor (kind,basis,rt) to a linear event index.
 
@@ -104,7 +103,7 @@ class ScheduleIndex:
             return 2 + R * self.L + (0 if basis == "X" else 1)
         raise ValueError(f"Unknown event kind: {kind}")
 
-    def _measured_labels_at_event(self, eidx: int, R: int) -> Set[str]:
+    def _measured_labels_at_event(self, eidx: int, R: int) -> set[str]:
         if eidx == 0:
             return self.labels_x
         if eidx == 1:
@@ -126,8 +125,8 @@ class ScheduleIndex:
         *,
         lab: str,
         basis: str,
-        A: Tuple[str, Optional[Tuple[int, int]]],
-        B: Tuple[str, Optional[Tuple[int, int]]],
+        A: tuple[str, tuple[int, int] | None],
+        B: tuple[str, tuple[int, int] | None],
         R: int,
     ) -> bool:
         """

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Dict, List, Tuple, Optional
 import networkx as nx
 
 from acid.base_code import BaseCode, StabiliserShape
@@ -33,7 +32,7 @@ def in_bounds_square(d: int, x: int, y: int) -> bool:
 
 
 def _add_cartesian_connectivity(
-    G: nx.Graph, coords: Dict[Tuple[int, int], int], d: int
+    G: nx.Graph, coords: dict[tuple[int, int], int], d: int
 ) -> None:
     # Four-neighbour connectivity (N,S,E,W) within bounds
     for (x, y), q in coords.items():
@@ -53,16 +52,16 @@ def _path_graph(n: int) -> nx.Graph:
 
 
 def _local_graph_from_coords(
-    order_edges: List[Tuple[Tuple[int, int], Tuple[int, int]]],
-    qmap_list: List[Tuple[int, int]],
-) -> Tuple[nx.Graph, List[int]]:
+    order_edges: list[tuple[tuple[int, int], tuple[int, int]]],
+    qmap_list: list[tuple[int, int]],
+) -> tuple[nx.Graph, list[int]]:
     """Build a local graph and qubit map from coordinate pairs and desired edges.
 
     - qmap_list: list of global coordinate points included in the stabiliser.
     - order_edges: list of coordinate-pair edges to include if both endpoints are present.
     Returns (local_graph, qmap) where qmap maps local node index to device qubit id.
     """
-    idx_of: Dict[Tuple[int, int], int] = {xy: i for i, xy in enumerate(qmap_list)}
+    idx_of: dict[tuple[int, int], int] = {xy: i for i, xy in enumerate(qmap_list)}
     G = nx.Graph()
     G.add_nodes_from(range(len(qmap_list)))
     for a, b in order_edges:
@@ -73,17 +72,17 @@ def _local_graph_from_coords(
     return G, list(range(len(qmap_list)))
 
 
-def build_colour_square_code(d: int) -> Tuple[BaseCode, Dict[Tuple[int, int], int]]:
+def build_colour_square_code(d: int) -> tuple[BaseCode, dict[tuple[int, int], int]]:
     _assert_odd_distance(d)
 
     offset_x = 1
     offset_y = 1
 
     # Qubit placement: all integer (x,y) within domain and bounds
-    coords: Dict[Tuple[int, int], int] = {}
+    coords: dict[tuple[int, int], int] = {}
     qid = 0
     for x in range(-1, 2 * d - 2):  # inclusive upper bound 2d-3
-        for y in range(0, (3 * d - 3) // 2 + 1):
+        for y in range((3 * d - 3) // 2 + 1):
             if in_bounds_square(d, x, y):
                 coords[(x + offset_x, y + offset_y)] = qid
                 qid += 1
@@ -92,7 +91,7 @@ def build_colour_square_code(d: int) -> Tuple[BaseCode, Dict[Tuple[int, int], in
     G.add_nodes_from(range(qid))
     _add_cartesian_connectivity(G, coords, d)
 
-    shapes: List[StabiliserShape] = []
+    shapes: list[StabiliserShape] = []
 
     # Helper closures
     def hasq(x: int, y: int) -> bool:
@@ -105,8 +104,8 @@ def build_colour_square_code(d: int) -> Tuple[BaseCode, Dict[Tuple[int, int], in
 
     def add_inner_outer(color: str, L_of: callable, R_of: callable) -> None:
         SEC_length = 4
-        for i in range(0, half + 1):
-            for j in range(0, half + 1):
+        for i in range(half + 1):
+            for j in range(half + 1):
                 Lx, Ly = L_of(i, j)
                 Rx, Ry = R_of(i, j)
                 if not (hasq(Lx, Ly) and hasq(Rx, Ry)):
@@ -119,7 +118,7 @@ def build_colour_square_code(d: int) -> Tuple[BaseCode, Dict[Tuple[int, int], in
                 # schedule_hint = [[], [] , [] , [(1,0)]]  # (1,0) means CNOT controlled on 0 targeting 1
                 # layer_hint 1 for X, layer_hint 0 for Z
                 # Inner stabs: preferred roots as before, plus a preferred edge (L-R) at timestep 3
-                pref_edges_inner: Dict[Tuple[int, int], Optional[List[int]]] = {
+                pref_edges_inner: dict[tuple[int, int], list[int] | None] = {
                     (0, 1): [3]
                 }
                 shapes.append(
@@ -146,7 +145,7 @@ def build_colour_square_code(d: int) -> Tuple[BaseCode, Dict[Tuple[int, int], in
                 )
 
                 # Outer: include neighbors up/down/left/right around L and R if present
-                nb_coords: List[Tuple[int, int]] = []
+                nb_coords: list[tuple[int, int]] = []
                 # Base points first to stabilise indexing order
                 base_points = [(Lx, Ly), (Rx, Ry)]
                 add_points = [
@@ -213,10 +212,10 @@ def build_colour_square_code(d: int) -> Tuple[BaseCode, Dict[Tuple[int, int], in
 
                 # Preferred edges with timing constraints (if endpoints exist):
                 # DL-L: t=0; DR-R: t=0; LL-L: t=1; RR-R: t=1; UL-L: t=2; UR-R: t=2; L-R: t=3
-                preferred_edges: Dict[Tuple[int, int], Optional[List[int]]] = {}
+                preferred_edges: dict[tuple[int, int], list[int] | None] = {}
 
                 def add_pref(
-                    a_xy: Tuple[int, int], b_xy: Tuple[int, int], t: int
+                    a_xy: tuple[int, int], b_xy: tuple[int, int], t: int
                 ) -> None:
                     if hasq(*a_xy) and hasq(*b_xy):
                         a = coord_to_local[a_xy]

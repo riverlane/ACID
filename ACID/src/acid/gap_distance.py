@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
-from typing import List, Sequence, Tuple
-import re
+from collections.abc import Sequence
 
 
 def _validate_binary_matrix(M: Sequence[Sequence[int]]) -> None:
@@ -36,7 +36,7 @@ def compute_nkd_with_gap(
     mindist: int = 0,
     debug: int = 1,
     timeout: int = 300,
-) -> Tuple[int, int, int]:
+) -> tuple[int, int, int]:
     """
     Compute (n, k, d) using GAP + QDistRnd package.
 
@@ -52,7 +52,7 @@ def compute_nkd_with_gap(
     _validate_binary_matrix(Hx)
     _validate_binary_matrix(Hz)
 
-    gap_lines: List[str] = []
+    gap_lines: list[str] = []
     gap_lines.append("F := GF(2);")
     gap_lines.append(
         'if not LoadPackage("QDistRnd") then Error("QDistRnd package not found"); fi;'

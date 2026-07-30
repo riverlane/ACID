@@ -2,9 +2,8 @@ from __future__ import annotations
 
 """Core scheduling types: templates, schedules, and layer selection."""
 
-from dataclasses import dataclass
 import itertools
-from typing import List, Tuple, Set, Optional
+from dataclasses import dataclass
 
 from networkx import DiGraph, Graph
 
@@ -16,12 +15,12 @@ class Stabiliser:
 
     def __init__(
         self,
-        stabiliser_template: "StabiliserTemplate",
-        qubit_map: List[int],
+        stabiliser_template: StabiliserTemplate,
+        qubit_map: list[int],
         label: str,
     ):
         self.stabiliser_template = stabiliser_template
-        self.qubit_map: List[int] = list(qubit_map)
+        self.qubit_map: list[int] = list(qubit_map)
         self.qubit_map_reverse = {q: i for i, q in enumerate(qubit_map)}
         self.label = label
 
@@ -34,7 +33,7 @@ class Stabiliser:
         return self.stabiliser_template.connectivity_subgraph
 
     @property
-    def qubit_set(self) -> Set[int]:
+    def qubit_set(self) -> set[int]:
         return set(self.qubit_map)
 
 
@@ -49,8 +48,8 @@ class StabiliserSchedule:
         shed_id: int,
         schedule_length: int,
         root: int,
-        raw_ops: List[List[Tuple[int, int]]],
-        stabiliser_template: "StabiliserTemplate",
+        raw_ops: list[list[tuple[int, int]]],
+        stabiliser_template: StabiliserTemplate,
     ):
         assert len(raw_ops) == schedule_length
         self.id = shed_id
@@ -81,7 +80,7 @@ class StabiliserSchedule:
         return pauli_frames[:-1]
 
     def compatible(
-        self, other: "StabiliserSchedule", self_to_other_qubits: dict
+        self, other: StabiliserSchedule, self_to_other_qubits: dict
     ) -> bool:
         # Map local-overlap indices in both directions between the two schedules.
         other_to_self_qubits = {v: k for k, v in self_to_other_qubits.items()}
@@ -194,9 +193,9 @@ class StabiliserTemplate:
         connectivity_subgraph: Graph,
         SEC_cycle_length: int,
         name: str = "",
-        preferred_roots: List[int] = None,
-        preferred_edges: dict[Tuple[int, int], Optional[List[int]]] | None = None,
-        schedule_hint: List[List[Tuple[int, int]]] | None = None,
+        preferred_roots: list[int] = None,
+        preferred_edges: dict[tuple[int, int], list[int] | None] | None = None,
+        schedule_hint: list[list[tuple[int, int]]] | None = None,
         layer_hint: int | None = None,
     ):
         self.template_id = StabiliserTemplate.next_id
@@ -273,7 +272,7 @@ class StabiliserTemplate:
             time_ok = True
             if self.preferred_edges:
                 # Build used edge -> timestep map (undirected local edge indices)
-                used: dict[Tuple[int, int], int] = {}
+                used: dict[tuple[int, int], int] = {}
                 for t, ops in enumerate(sched.ops):
                     for a, b in ops:
                         e = (a, b) if a <= b else (b, a)
@@ -314,12 +313,12 @@ class StabiliserTemplate:
             )
         return schedules
 
-    def make_stabiliser(self, qubits: List[int], label: str) -> "Stabiliser":
+    def make_stabiliser(self, qubits: list[int], label: str) -> Stabiliser:
         return Stabiliser(self, qubits, label)
 
     def find_schedule_hint_index(
-        self, schedule_hint: List[List[Tuple[int, int]]] | None
-    ) -> Optional[int]:
+        self, schedule_hint: list[list[tuple[int, int]]] | None
+    ) -> int | None:
         if schedule_hint is None:
             return None
         default_schedule_sorted = [sorted(step) for step in schedule_hint]
@@ -357,8 +356,8 @@ class SyndromeExtractionLayer:
             if s.stabiliser_template.pauli_type == "Z"
         )
 
-    def collect_CNOTS(self) -> List[List[Tuple[int, int]]]:
-        all_CNOTS: List[Set[Tuple[int, int]]] = [
+    def collect_CNOTS(self) -> list[list[tuple[int, int]]]:
+        all_CNOTS: list[set[tuple[int, int]]] = [
             set() for _ in range(self.cycle_length)
         ]
         for t in range(self.cycle_length):
@@ -436,7 +435,7 @@ class SyndromeExtractionLayer:
         n_eff = len(kept_qubits)
         Hx = [[0] * n_eff for _ in range(len(x_rows))]
         Hz = [[0] * n_eff for _ in range(len(z_rows))]
-        labels: List[str] = []
+        labels: list[str] = []
         for i, supp in enumerate(x_rows):
             labels.append(f"X_row_{i}")
             for q in supp:
@@ -453,7 +452,7 @@ class SyndromeExtractionLayer:
 
         return StabiliserCode(num_qubits=n_eff, row_labels=labels, Hx=Hx, Hz=Hz)
 
-    def propagate(self, P: "PauliString") -> "PauliString":
+    def propagate(self, P: PauliString) -> PauliString:
 
         if P.n != self.code.num_qubits:
             raise ValueError("PauliString has wrong length for this code")
@@ -462,21 +461,21 @@ class SyndromeExtractionLayer:
         Q.conj_steps(steps)
         return Q
 
-    def collect_cx_stim(self) -> List[List[Tuple[int, int]]]:
+    def collect_cx_stim(self) -> list[list[tuple[int, int]]]:
         return self.collect_CNOTS()
 
     @staticmethod
-    def cx_line_stim(step: List[Tuple[int, int]]) -> str:
+    def cx_line_stim(step: list[tuple[int, int]]) -> str:
         if not step:
             return ""
-        flat: List[str] = []
+        flat: list[str] = []
         for c, t in step:
             flat.append(str(c))
             flat.append(str(t))
         return "CX " + " ".join(flat)
 
-    def emit_layer_contract(self) -> List[str]:
-        lines: List[str] = []
+    def emit_layer_contract(self) -> list[str]:
+        lines: list[str] = []
         for step in self.collect_cx_stim():
             s = self.cx_line_stim(step)
             if s:
@@ -484,8 +483,8 @@ class SyndromeExtractionLayer:
             lines.append("TICK")
         return lines
 
-    def emit_layer_expand(self) -> List[str]:
-        lines: List[str] = []
+    def emit_layer_expand(self) -> list[str]:
+        lines: list[str] = []
         steps = self.collect_cx_stim()
         for step in reversed(steps):
             s = self.cx_line_stim(step)
@@ -494,9 +493,9 @@ class SyndromeExtractionLayer:
             lines.append("TICK")
         return lines
 
-    def roots_by_basis(self) -> Tuple[List[int], List[int]]:
-        x_roots: List[int] = []
-        z_roots: List[int] = []
+    def roots_by_basis(self) -> tuple[list[int], list[int]]:
+        x_roots: list[int] = []
+        z_roots: list[int] = []
         for stab, shed in self.chosen.items():
             root_q = stab.qubit_map[shed.root]
             if stab.pauli_type == "X":

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Literal
+from typing import Literal
 
 from ..gf2_utils import gf2_rank
 
@@ -13,7 +13,7 @@ class PauliBasis:
     name: str
     kind: PauliKind
     priority: int
-    rows: List[List[int]]  # each row length 2n (X|Z) representation over GF(2)
+    rows: list[list[int]]  # each row length 2n (X|Z) representation over GF(2)
 
     def validate(self, n: int) -> None:
         for r in self.rows:
@@ -26,7 +26,7 @@ class PauliBasis:
             raise ValueError(f"Basis {self.name} rows are not linearly independent")
 
 
-def pauli_to_bin_row(pauli: str) -> List[int]:
+def pauli_to_bin_row(pauli: str) -> list[int]:
     """Convert a Pauli string like '+X_Z' into a 2n binary row [X...|Z...].
 
     Ignores the sign and underscores. Y -> X=1, Z=1.
@@ -58,7 +58,7 @@ def default_single_qubit_basis(n: int) -> PauliBasis:
     Ordering: all Z_i for i in [0..n-1], then all X_i.
     Kind: 'stabiliser', priority 0.
     """
-    rows: List[List[int]] = []
+    rows: list[list[int]] = []
     # Z_i
     for i in range(n):
         X = [0] * n

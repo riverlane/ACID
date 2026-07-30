@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
 import networkx as nx
 
 from acid.base_code import BaseCode, StabiliserShape
@@ -35,7 +34,7 @@ def _cycle_graph(n: int) -> nx.Graph:
 
 def build_colour_hex_code(
     d: int, *, deg4: bool = False
-) -> Tuple[BaseCode, Dict[Tuple[int, int], int]]:
+) -> tuple[BaseCode, dict[tuple[int, int], int]]:
     """Colour code on a d x (3/2)(d-1) lattice built from explicit stabiliser shapes.
 
     Shapes and placement follow the specification:
@@ -59,7 +58,7 @@ def build_colour_hex_code(
     H = (3 * (d - 1)) // 2
 
     # Coordinate registry built on demand while placing shapes
-    coords: Dict[Tuple[int, int], int] = {}
+    coords: dict[tuple[int, int], int] = {}
 
     def in_dom(x: int, y: int) -> bool:
         return 0 <= x <= d - 1 and 0 <= y <= H
@@ -73,12 +72,12 @@ def build_colour_hex_code(
     # Global connectivity inferred from shapes
     G = nx.Graph()
 
-    shapes: List[StabiliserShape] = []
+    shapes: list[StabiliserShape] = []
 
     def add_shape(
         label: str,
-        nodes_xy: List[Tuple[int, int]],
-        edges_pairs: List[Tuple[int, int]],
+        nodes_xy: list[tuple[int, int]],
+        edges_pairs: list[tuple[int, int]],
         sec_len: int = 3,
     ) -> None:
         # Skip if any node is out of domain
@@ -110,7 +109,7 @@ def build_colour_hex_code(
             rung_present = any(
                 ((a == 1 and b == 4) or (a == 4 and b == 1)) for (a, b) in edges_pairs
             )
-            pe: dict[Tuple[int, int], None] = {}
+            pe: dict[tuple[int, int], None] = {}
             for ai, bi in edges_pairs:
                 u, v = (ai, bi) if ai <= bi else (bi, ai)
                 if rung_present and (u, v) == (1, 4):
@@ -148,11 +147,11 @@ def build_colour_hex_code(
 
     # 1) Basic hex rectangles
     # Base placements constrained by y <= min(3x-2, -3x + (3d-7)) with x in [0..d-1]
-    for x in range(0, d):
+    for x in range(d):
         y_max = min(3 * x - 2, -3 * x + (3 * d - 7))
         if y_max < 0:
             continue
-        for y in range(0, y_max + 1):
+        for y in range(y_max + 1):
             # Families: (2i,2j) i.e. x even, y even; and (2i-1,2j+1) i.e. x odd, y odd
             if (x % 2 == 0 and y % 2 == 0) or (x % 2 == 1 and y % 2 == 1):
                 # Node order around the rectangle perimeter
@@ -175,7 +174,7 @@ def build_colour_hex_code(
     # Extra rectangle stabs
     r_extra_max = (d - 3) // 4
     parity_adjust = d % 4 == 1
-    for i in range(0, max(r_extra_max, -1) + 1):
+    for i in range(max(r_extra_max, -1) + 1):
         # Left extras: (2i+1, 6i+3)
         x, y = 2 * i + 1, 6 * i + 3
         pts = [
@@ -229,7 +228,7 @@ def build_colour_hex_code(
 
     # 2) Left triangles: 4-node path (x,y)->(x+1,y)->(x+1,y+1)->(x+1,y+2)
     lt_max = (d + 1) // 4
-    for i in range(0, lt_max + 1):
+    for i in range(lt_max + 1):
         x, y = 2 * i, 6 * i
         nodes = [(x, y), (x + 1, y), (x + 1, y + 1), (x + 1, y + 2)]
         edges = [(0, 1), (1, 2), (2, 3)]
@@ -240,13 +239,13 @@ def build_colour_hex_code(
     # d % 4 == 3 (e.g., 7,11): (d-2i-3, 6i+4)
     rt_max = (2 * d - 3) // 4
     if parity_adjust:
-        for i in range(0, rt_max + 1):
+        for i in range(rt_max + 1):
             x, y = d - 2 * i - 2, 6 * i + 1
             nodes = [(x + 1, y), (x, y), (x, y + 1), (x, y + 2)]
             edges = [(0, 1), (1, 2), (2, 3)]
             add_shape(label=f"triR({x},{y})/", nodes_xy=nodes, edges_pairs=edges)
     else:
-        for i in range(0, rt_max + 1):
+        for i in range(rt_max + 1):
             x, y = d - 2 * i - 3, 6 * i + 4
             nodes = [(x + 1, y), (x, y), (x, y + 1), (x, y + 2)]
             edges = [(0, 1), (1, 2), (2, 3)]
@@ -254,19 +253,19 @@ def build_colour_hex_code(
 
     # 4) Spurs: 2-node vertical path at the listed positions
     sp1_max = (d - 3) // 4
-    for i in range(0, sp1_max + 1):
+    for i in range(sp1_max + 1):
         x, y = 2 * i + 1, 6 * i + 4
         nodes = [(x, y), (x, y + 1)]
         add_shape(label=f"spurA({x},{y})/", nodes_xy=nodes, edges_pairs=[(0, 1)])
     sp2_max = (d + 1) // 4
     if not parity_adjust:
-        for i in range(0, sp2_max + 1):
+        for i in range(sp2_max + 1):
             x, y = d - 2 * i - 1, 6 * i + 2
             nodes = [(x, y), (x, y + 1)]
             add_shape(label=f"spurB({x},{y})/", nodes_xy=nodes, edges_pairs=[(0, 1)])
     else:
         # Adjusted right spurs: sit on adjusted right extras at (d-2i-2, 6i+5)
-        for i in range(0, max(d // 4 - 1, -1) + 1):
+        for i in range(max(d // 4 - 1, -1) + 1):
             x, y = d - 2 * i - 2, 6 * i + 5
             nodes = [(x, y), (x, y + 1)]
             add_shape(label=f"spurB({x},{y})/", nodes_xy=nodes, edges_pairs=[(0, 1)])
@@ -274,7 +273,7 @@ def build_colour_hex_code(
     # 5) Squares: 4-cycle at (2i+1, 0)
     # 5) Squares: 4-cycle at (2i+1, 0), i = 0 .. (d-1)//2 (no parity adjustment)
     sq_max = (d - 1) // 2
-    for i in range(0, sq_max + 1):
+    for i in range(sq_max + 1):
         x, y = 2 * i + 1, 0
         nodes = [(x, y), (x, y + 1), (x + 1, y + 1), (x + 1, y)]
         edges = [(0, 1), (1, 2), (2, 3), (3, 0)]

@@ -4,9 +4,8 @@ from __future__ import annotations
 import argparse
 
 import stim
-
-from acid.codes.bb.builder_hexconn import get_spec
 from acid.codes.bb import builder_deg5 as deg5
+from acid.codes.bb.builder_hexconn import get_spec
 from acid.defects.defective_code import DefectiveCode
 from acid.tableau_visualiser.visualiser import TableauVisualiser
 

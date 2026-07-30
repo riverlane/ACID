@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
 import networkx as nx
 
 from acid.base_code import BaseCode, StabiliserShape
@@ -15,7 +14,7 @@ def _path_template(n: int = 4) -> nx.Graph:
 
 def build_unrotated_surface_hex_code(
     d: int,
-) -> Tuple[BaseCode, Dict[Tuple[int, int], int]]:
+) -> tuple[BaseCode, dict[tuple[int, int], int]]:
     """
     Distance-d unrotated surface (hex connectivity):
       - Grid size: W = H = 2d; coordinates in [0..2d-1]. One corner (W-1,H-1) is unused.
@@ -34,8 +33,8 @@ def build_unrotated_surface_hex_code(
     """
     W = 2 * d
     H = 2 * d
-    coord_to_qid: Dict[Tuple[int, int], int] = {}
-    qlist: List[Tuple[int, int]] = []
+    coord_to_qid: dict[tuple[int, int], int] = {}
+    qlist: list[tuple[int, int]] = []
     qid = 0
     for x in range(W):
         for y in range(H):
@@ -55,8 +54,8 @@ def build_unrotated_surface_hex_code(
     G = nx.Graph()
     G.add_nodes_from(range(len(qlist)))
     # E1 edges
-    for i in range(0, d):
-        for j in range(0, d):
+    for i in range(d):
+        for j in range(d):
             if i == d - 1 and j == d - 1:
                 continue
             x1, y1 = 2 * i, 2 * j
@@ -64,26 +63,26 @@ def build_unrotated_surface_hex_code(
             if hasq(x1, y1) and hasq(x2, y2):
                 G.add_edge(idq(x1, y1), idq(x2, y2))
     # E2 edges
-    for i in range(0, d):
-        for j in range(0, d):
+    for i in range(d):
+        for j in range(d):
             x1, y1 = 2 * i + 1, 2 * j + 1
             x2, y2 = 2 * i + 2, 2 * j
             if hasq(x1, y1) and hasq(x2, y2):
                 G.add_edge(idq(x1, y1), idq(x2, y2))
 
     # E3 edges
-    for i in range(0, d):
-        for j in range(0, d):
+    for i in range(d):
+        for j in range(d):
             x1, y1 = 2 * i + 1, 2 * j + 1
             x2, y2 = 2 * i, 2 * j + 2
             if hasq(x1, y1) and hasq(x2, y2):
                 G.add_edge(idq(x1, y1), idq(x2, y2))
 
-    shapes: List[StabiliserShape] = []
+    shapes: list[StabiliserShape] = []
     # X stabs (even, odd) — local path (k=3 boundary, k=4 bulk)
-    for i in range(0, d):
+    for i in range(d):
         x = 2 * i
-        for j in range(0, d - 1):
+        for j in range(d - 1):
             y = 2 * j + 1
             u = hasq(x, y + 1)
             r = hasq(x + 1, y)
@@ -110,9 +109,9 @@ def build_unrotated_surface_hex_code(
             shapes.append(StabiliserShape("X", path, 2, qmap, f"X({x},{y})"))
 
     # Z stabs (odd, even) — local path (k=3 or 4)
-    for i in range(0, d - 1):
+    for i in range(d - 1):
         x = 2 * i + 1
-        for j in range(0, d):
+        for j in range(d):
             y = 2 * j
             u = hasq(x, y + 1)
             r = hasq(x + 1, y)

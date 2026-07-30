@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-from typing import Dict, List, Set
-
 from acid.scheduling.types import SyndromeExtractionLayer
 
 
 def analyze_layers(
-    product_members: Dict[str, Set[str]],
-    layers: List[SyndromeExtractionLayer],
+    product_members: dict[str, set[str]],
+    layers: list[SyndromeExtractionLayer],
     *,
-    interesting_labels: Set[str] | None = None,
-) -> Dict:
+    interesting_labels: set[str] | None = None,
+) -> dict:
     """
     Generic schedule analysis usable for any code and any schedule:
       - per-layer measured labels (optionally filtered to 'interesting_labels')
@@ -29,8 +27,8 @@ def analyze_layers(
         interesting_labels = set()
 
     # Progress since last completion per product
-    progress: Dict[str, Set[str]] = {p: set() for p in product_members}
-    completions: Dict[str, List[int]] = {p: [] for p in product_members}
+    progress: dict[str, set[str]] = {p: set() for p in product_members}
+    completions: dict[str, list[int]] = {p: [] for p in product_members}
 
     per_layer = []
     for t, layer in enumerate(layers):

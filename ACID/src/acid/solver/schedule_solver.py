@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from acid.defects.quasi import QuasiProduct
 
-
 """
 ScheduleSolver — CP-SAT scheduler with product-stabiliser iteration constraints.
 
@@ -73,7 +72,6 @@ Outputs:
     usual per-layer compatibility and the product iteration constraints.
 """
 
-from typing import Dict, List, Tuple, Set
 import itertools
 
 import networkx as nx
@@ -82,8 +80,8 @@ from ortools.sat.python import cp_model
 # Reuse core types from the base solver
 from acid.scheduling.types import (
     Stabiliser,
-    StabiliserTemplate,
     StabiliserSchedule,
+    StabiliserTemplate,
     SyndromeExtractionLayer,
 )
 
@@ -123,10 +121,10 @@ class ScheduleSolver:
     def __init__(
         self,
         connectivity_graph: nx.Graph,
-        stabilisers: List[Tuple[StabiliserTemplate, List[int], str]],
+        stabilisers: list[tuple[StabiliserTemplate, list[int], str]],
         *,
         anticommutation_graph: nx.Graph,
-        product_stabilisers: List[QuasiProduct],
+        product_stabilisers: list[QuasiProduct],
     ) -> None:
         # Standalone initialisation (no inheritance from Code)
         self.num_qubits = connectivity_graph.number_of_nodes()
@@ -138,7 +136,7 @@ class ScheduleSolver:
         self.schedule_dependencies = self.calculate_schedule_dependencies()
         self.scheduling_graph = self.create_schedule_graph()
         self.anticomm_graph: nx.Graph = anticommutation_graph.copy()
-        self.product_specs: List[QuasiProduct] = list(product_stabilisers)
+        self.product_specs: list[QuasiProduct] = list(product_stabilisers)
 
         # Validate that anticomm graph nodes match our stabiliser labels
         stab_labels = set(self.stabilisers.keys())
@@ -174,7 +172,7 @@ class ScheduleSolver:
         # Build quick lookup structures for product membership and anticomm products
         self._build_product_indices()
         # Optional pruning state (populated via apply_pruning)
-        self._prune_allowed_ids_by_label: Dict[str, List[int]] | None = None
+        self._prune_allowed_ids_by_label: dict[str, list[int]] | None = None
         self._pruned_graph: nx.DiGraph | None = None
 
     def apply_pruning(self, *, M: int, verbose: bool = False) -> None:
@@ -189,7 +187,7 @@ class ScheduleSolver:
     # --- Compatibility helpers (copied from legacy Code class) ---
     def make_stabilisers(self, stabilisers) -> dict[str, Stabiliser]:
         """Builds Stabiliser objects from the provided stabiliser templates and qubit maps."""
-        stabiliser_objs: Dict[str, Stabiliser] = {}
+        stabiliser_objs: dict[str, Stabiliser] = {}
         for template, qubits, label in stabilisers:
             stabiliser = template.make_stabiliser(qubits, label)
             for u, v in stabiliser.connectivity_subgraph.edges:
@@ -346,7 +344,7 @@ class ScheduleSolver:
                 key = (
                     stab1.stabiliser_template.template_id,
                     stab2.stabiliser_template.template_id,
-                    tuple(sorted(zip(mapping.keys(), mapping.values()))),
+                    tuple(sorted(mapping.items())),
                 )
                 # If every schedule pair is compatible, no edge/constraint needed.
                 if len(self.schedule_dependencies[key]) == len(
@@ -410,11 +408,11 @@ class ScheduleSolver:
         """Builds lookup structures for product membership and opposite-type products per
         stabiliser."""
         # Map product label -> ProductSpec and member Stabiliser objects
-        self.plabel_to_product: Dict[str, QuasiProduct] = {
+        self.plabel_to_product: dict[str, QuasiProduct] = {
             p.label: p for p in self.product_specs
         }
         # Stabiliser label -> list of product labels of same type containing it
-        self.qstab_to_product: Dict[str, List[str]] = {
+        self.qstab_to_product: dict[str, list[str]] = {
             lab: [] for lab in self.stabilisers
         }
         for p in self.product_specs:
@@ -423,7 +421,7 @@ class ScheduleSolver:
 
         # For each stabiliser label q, collect opposite-type products that contain
         # any anticomm neighbor of q
-        self.opp_products_by_label: Dict[str, Set[str]] = {
+        self.opp_products_by_label: dict[str, set[str]] = {
             lab: set() for lab in self.stabilisers
         }
         for u, v in self.anticomm_graph.edges():
@@ -443,7 +441,7 @@ class ScheduleSolver:
         self,
         num_layers: int,
         solve_time: float = 10.0,
-    ) -> List[SyndromeExtractionLayer]:
+    ) -> list[SyndromeExtractionLayer]:
         """Build and solve CP-SAT with product/iteration constraints.
 
         Returns a list of SyndromeExtractionLayer objects, one per layer.
@@ -451,7 +449,7 @@ class ScheduleSolver:
         model = cp_model.CpModel()
 
         # Optional pruning already applied in prepare_solver
-        allowed_ids_by_label: Dict[str, List[int]] = {}
+        allowed_ids_by_label: dict[str, list[int]] = {}
         if (
             self._prune_allowed_ids_by_label is not None
             and self._pruned_graph is not None
@@ -468,16 +466,16 @@ class ScheduleSolver:
 
         # Decision variables: assignment[stabiliser label][layer_num][k]
         # where k indexes schedules for that stabiliser template.
-        assignment: Dict[str, List[Dict[int, cp_model.IntVar]]] = {}
-        measured: Dict[str, List[cp_model.IntVar]] = {}
+        assignment: dict[str, list[dict[int, cp_model.IntVar]]] = {}
+        measured: dict[str, list[cp_model.IntVar]] = {}
         for stab in self.stabilisers.values():
             kept_schedule_ids = allowed_ids_by_label.get(stab.label)
             if not kept_schedule_ids:
                 raise RuntimeError(f"No allowed schedules for stabiliser {stab.label}")
-            per_layer: List[Dict[int, cp_model.IntVar]] = []
-            measured_layer: List[cp_model.IntVar] = []
+            per_layer: list[dict[int, cp_model.IntVar]] = []
+            measured_layer: list[cp_model.IntVar] = []
             for layer_num in range(num_layers):
-                var_map: Dict[int, cp_model.IntVar] = {}
+                var_map: dict[int, cp_model.IntVar] = {}
                 for k_schedule_id in kept_schedule_ids:
                     # did we assign schedule k to this stabiliser at this layer?
                     var_map[k_schedule_id] = model.new_bool_var(
@@ -531,10 +529,10 @@ class ScheduleSolver:
         #   c_P[t] = c_P[t-1] + Reset_P[t] (t>=1); c_P[0] = 0
         #   If Reset_P[t]: f_{P,i}[t] = 0; else f_{P,i}[t] = OR(f_{P,i}[t-1], measured(i, t))  ###### SHOULD BE if reset f{P,i}[t] = measured(i, t)
 
-        product_counters: Dict[str, List[cp_model.IntVar]] = {}
-        product_flags: Dict[str, Dict[str, List[cp_model.IntVar]]] = {}
-        product_inprogress: Dict[str, List[cp_model.IntVar]] = {}
-        product_reset: Dict[str, List[cp_model.IntVar]] = {}
+        product_counters: dict[str, list[cp_model.IntVar]] = {}
+        product_flags: dict[str, dict[str, list[cp_model.IntVar]]] = {}
+        product_inprogress: dict[str, list[cp_model.IntVar]] = {}
+        product_reset: dict[str, list[cp_model.IntVar]] = {}
 
         for p in self.product_specs:
             # counters
@@ -547,7 +545,7 @@ class ScheduleSolver:
                 for t in range(num_layers)
             ]
             # member flags per layer
-            flags_for_members: Dict[str, List[cp_model.IntVar]] = {}
+            flags_for_members: dict[str, list[cp_model.IntVar]] = {}
             for m in p.members:
                 flags_for_members[m] = [
                     model.new_bool_var(f"flag__{p.label}__{m}__t{t}")
@@ -555,7 +553,7 @@ class ScheduleSolver:
                 ]
             product_flags[p.label] = flags_for_members
             # resets (t>=1); for t=0 use constant 0 via a fixed false bool
-            reset_vars: List[cp_model.IntVar] = []
+            reset_vars: list[cp_model.IntVar] = []
             for layer_num in range(num_layers):
                 if layer_num == 0:
                     reset_var = model.new_bool_var(f"reset__{p.label}__t0")
@@ -655,7 +653,7 @@ class ScheduleSolver:
 
         # Objective: big-M lexicographic maximize (min_group_coverage, total_quasi_measured)
         # Build group totals: products use their final counter; non-product stabs use sum of measured flags.
-        group_totals: List[cp_model.IntVar] = []
+        group_totals: list[cp_model.IntVar] = []
         for p in self.product_specs:
             group_totals.append(product_counters[p.label][-1])
         for lab, stab in self.stabilisers.items():
@@ -700,9 +698,9 @@ class ScheduleSolver:
                 f"Time limit or unknown status ({status_name}) with no feasible solution found (L={num_layers}, time_limit={solve_time}s)"
             )
 
-        layers: List[SyndromeExtractionLayer] = []
+        layers: list[SyndromeExtractionLayer] = []
         for layer_num in range(num_layers):
-            chosen: Dict[Stabiliser, StabiliserSchedule] = {}
+            chosen: dict[Stabiliser, StabiliserSchedule] = {}
             for stab in self.stabilisers.values():
                 var_map = assignment[stab.label][
                     layer_num

@@ -2,14 +2,13 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
-from typing import List, Tuple
 import random
 import re
+from pathlib import Path
 
 from acid.codes.surface.unrotated_hex import build_unrotated_surface_hex_code
-from acid.embedding import CoordMapEmbedding
 from acid.defects.defective_code import DefectiveCode
+from acid.embedding import CoordMapEmbedding
 from acid.memory_experiment.experiment import MemoryExperiment, MemoryExperimentConfig
 from acid.stim_to_shatter_url import prompt_open_shatter
 
@@ -39,15 +38,15 @@ def run(
     )
     all_qubits = list(range(base.num_qubits))
 
-    def parse_qubits(s: str | None) -> List[int]:
+    def parse_qubits(s: str | None) -> list[int]:
         if not s:
             return []
         return sorted(list({int(p) for p in re.split(r"[\s,]+", s.strip()) if p}))
 
-    def parse_couplers(s: str | None) -> List[Tuple[int, int]]:
+    def parse_couplers(s: str | None) -> list[tuple[int, int]]:
         if not s:
             return []
-        out: List[Tuple[int, int]] = []
+        out: list[tuple[int, int]] = []
         for token in [p for p in re.split(r"[\s,]+", s.strip()) if p]:
             if "-" not in token:
                 raise ValueError(f"Invalid coupler token '{token}'. Use 'u-v'.")
@@ -74,7 +73,7 @@ def run(
                 raise SystemExit(
                     f"Dropped qubit {q} out of range [0..{base.num_qubits - 1}]"
                 )
-        dropped_nodes: List[int] = explicit_qubits
+        dropped_nodes: list[int] = explicit_qubits
     else:
         nQ = max(0, int(n_dropped_qubits))
         dropped_nodes = (
@@ -87,7 +86,7 @@ def run(
                 raise SystemExit(
                     f"Dropped coupler {e[0]}-{e[1]} not in device connectivity"
                 )
-        dropped_edges: List[Tuple[int, int]] = explicit_couplers
+        dropped_edges: list[tuple[int, int]] = explicit_couplers
     else:
         nE = max(0, int(n_dropped_couplers))
         dropped_edges = (

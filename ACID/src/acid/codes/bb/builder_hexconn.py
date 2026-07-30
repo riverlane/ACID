@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Tuple, Optional
 
 import networkx as nx
 
+from acid.base_code import BaseCode, StabiliserShape
 from acid.codes.bb.algebra import GroupRing, Monomial, Polynomial
 from acid.codes.bb.midcycle import BBMidCycle
 from acid.embedding import SquareGridEmbedding
-from acid.base_code import BaseCode, StabiliserShape
 
 # Internal lookup of known BB codes by key. The polynomials are given in
 # human-readable form for documentation (A_str/B_str) and normalised monomial
@@ -89,22 +88,22 @@ class CodeSpec:
     key: str
     l: int
     m: int
-    a2: Tuple[int, int]
-    a3: Tuple[int, int]
-    b2: Tuple[int, int]
-    b3: Tuple[int, int]
-    fx: Optional[int] = None
-    fy: Optional[int] = None
+    a2: tuple[int, int]
+    a3: tuple[int, int]
+    b2: tuple[int, int]
+    b3: tuple[int, int]
+    fx: int | None = None
+    fy: int | None = None
 
 
-def _poly_from_mons(ring: GroupRing, mons: List[Tuple[int, int]]) -> Polynomial:
+def _poly_from_mons(ring: GroupRing, mons: list[tuple[int, int]]) -> Polynomial:
     S = {Monomial(ax, ay, ring) for (ax, ay) in mons}
     return Polynomial(frozenset(S), ring)
 
 
 def build_code_from_spec(
-    spec: CodeSpec, *, fx: Optional[int] = None, fy: Optional[int] = None
-) -> Tuple[BaseCode, SquareGridEmbedding, List[Tuple[int, int, str]]]:
+    spec: CodeSpec, *, fx: int | None = None, fy: int | None = None
+) -> tuple[BaseCode, SquareGridEmbedding, list[tuple[int, int, str]]]:
     """Build a bivariate bicycle (BB) code with hex connectivity from a specification.
 
     Args:
@@ -158,8 +157,8 @@ def build_code_from_spec(
     hex_graph = nx.cycle_graph(6)
 
     SEC_length = 3
-    shapes: List[StabiliserShape] = []
-    connections: List[Tuple[int, int, str]] = []
+    shapes: list[StabiliserShape] = []
+    connections: list[tuple[int, int, str]] = []
 
     obj_stabs = [
         set(embedding.qubit_id(*q) for q in q_s) for s, q_s in bb.stabilizers().items()

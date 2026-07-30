@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable, List, Tuple
 
 
 class StimBuilderProtocol:
@@ -21,14 +21,14 @@ class NoiseModel:
     """
 
     def apply_after_gate(
-        self, builder: StimBuilderProtocol, gate: str, targets: List[Tuple[int, ...]]
+        self, builder: StimBuilderProtocol, gate: str, targets: list[tuple[int, ...]]
     ) -> None:
         """Called after a gate is emitted.
 
         - gate: gate name (e.g., "CX").
         - targets: list of tuples (e.g., [(c,t), ...] for a 2q gate).
         """
-        return None
+        return
 
     def apply_after_reset(
         self, builder: StimBuilderProtocol, qubits: Iterable[int], *, basis: str = "Z"
@@ -37,7 +37,7 @@ class NoiseModel:
 
         basis: 'Z' for R (|0>), 'X' for RX (|+>)
         """
-        return None
+        return
 
     def apply_before_measure(
         self, builder: StimBuilderProtocol, basis: str, qubits_or_terms: Iterable
@@ -47,13 +47,12 @@ class NoiseModel:
         - basis: 'X' or 'Z' for MX/MZ; 'PP' for MPP.
         - qubits_or_terms: for MX/MZ it is a list of qubit ids; for MPP a list of terms, each term is a list of (pauli, qid).
         """
-        return None
+        return
 
 
 class NoNoiseModel(NoiseModel):
     """No-op noise model."""
 
-    pass
 
 
 @dataclass
@@ -77,7 +76,7 @@ class DepolarizingNoiseModel(NoiseModel):
     p2: float = 0.0  # two-qubit depolarizing after CX
 
     def apply_after_gate(
-        self, builder: StimBuilderProtocol, gate: str, targets: List[Tuple[int, ...]]
+        self, builder: StimBuilderProtocol, gate: str, targets: list[tuple[int, ...]]
     ) -> None:
         if self.p2 <= 0:
             return

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Per-build deduplication of StabiliserTemplate instances."""
 
-from typing import List, Tuple, Optional
+
 import networkx as nx
 
 from .types import StabiliserTemplate
@@ -16,7 +16,7 @@ class TemplateFactory:
     """
 
     def __init__(self) -> None:
-        self._cache: dict[Tuple, StabiliserTemplate] = {}
+        self._cache: dict[tuple, StabiliserTemplate] = {}
 
     @staticmethod
     def _key(
@@ -24,7 +24,7 @@ class TemplateFactory:
         n_qubits: int,
         connectivity_subgraph: nx.Graph,
         SEC_cycle_length: int,
-    ) -> Tuple:
+    ) -> tuple:
         edges = tuple(
             sorted((min(u, v), max(u, v)) for (u, v) in connectivity_subgraph.edges())
         )
@@ -37,9 +37,9 @@ class TemplateFactory:
         connectivity_subgraph: nx.Graph,
         SEC_cycle_length: int,
         name: str = "",
-        preferred_roots: Optional[List[int]] = None,
-        preferred_edges: Optional[dict[Tuple[int, int], Optional[List[int]]]] = None,
-        schedule_hint: List[List[Tuple[int, int]]] | None = None,
+        preferred_roots: list[int] | None = None,
+        preferred_edges: dict[tuple[int, int], list[int] | None] | None = None,
+        schedule_hint: list[list[tuple[int, int]]] | None = None,
         layer_hint: int | None = None,
     ) -> StabiliserTemplate:
         k = self._key(pauli_type, n_qubits, connectivity_subgraph, SEC_cycle_length)

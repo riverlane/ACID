@@ -3,16 +3,16 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import List
 
 import stim
 
-from .basis import default_single_qubit_basis
-from .visualiser import TableauVisualiser
 from acid.pauli import CommutingPauliBasis, PauliString
 
+from .basis import default_single_qubit_basis
+from .visualiser import TableauVisualiser
 
-def load_commuting_bases(path: Path, n: int) -> List[CommutingPauliBasis]:
+
+def load_commuting_bases(path: Path, n: int) -> list[CommutingPauliBasis]:
     """Load commuting bases from a JSON file.
 
     Supported format:
@@ -23,7 +23,7 @@ def load_commuting_bases(path: Path, n: int) -> List[CommutingPauliBasis]:
     Rows are 2n binary (X|Z). Non-'stabiliser' kinds are ignored.
     """
     data = json.loads(path.read_text())
-    out: List[CommutingPauliBasis] = []
+    out: list[CommutingPauliBasis] = []
     for obj in data:
         if str(obj.get("kind", "stabiliser")).lower() != "stabiliser":
             continue
@@ -55,7 +55,7 @@ def main() -> int:
     vis = TableauVisualiser(circ, commuting_bases=[], anticommuting_bases={})
     n = vis.n
 
-    commuting: List[CommutingPauliBasis] = []
+    commuting: list[CommutingPauliBasis] = []
     # Default single-qubit commuting basis
     default_basis_2n = default_single_qubit_basis(n)
     default_rows = [PauliString.from_2n(r) for r in default_basis_2n.rows]

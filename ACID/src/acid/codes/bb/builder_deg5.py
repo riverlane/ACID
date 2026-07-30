@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from typing import List, Tuple
-
 import networkx as nx
 
+from acid.base_code import BaseCode, StabiliserShape
 from acid.codes.bb.algebra import GroupRing, Monomial, Polynomial
+from acid.codes.bb.builder_hexconn import CodeSpec
 from acid.codes.bb.midcycle import BBMidCycle
 from acid.embedding import SquareGridEmbedding
-from acid.base_code import BaseCode, StabiliserShape
-from acid.codes.bb.builder_hexconn import CodeSpec
 
 
 def _h_template() -> nx.Graph:
@@ -24,7 +22,7 @@ def _h_template() -> nx.Graph:
 
 def build_code_from_spec(
     spec: CodeSpec,
-) -> Tuple[BaseCode, SquareGridEmbedding, List[Tuple[int, int, str]]]:
+) -> tuple[BaseCode, SquareGridEmbedding, list[tuple[int, int, str]]]:
     """
     Build a BaseCode with degree-5 connectivity derived directly from the BB polynomials.
 
@@ -75,8 +73,8 @@ def build_code_from_spec(
 
     H = _h_template()
     SEC_length = 3
-    shapes: List[StabiliserShape] = []
-    connections: List[Tuple[int, int, str]] = []
+    shapes: list[StabiliserShape] = []
+    connections: list[tuple[int, int, str]] = []
 
     for ax in range(l):
         for ay in range(m):

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import List, Tuple
 import numpy as np
 
 
-def gf2_rref_colwise(M: List[List[int]], clear_upper_triangle=True) -> List[List[int]]:
+def gf2_rref_colwise(M: list[list[int]], clear_upper_triangle=True) -> list[list[int]]:
     """Return column-wise row-reduced echelon form over GF(2). Return pivot cols.
 
     M is a list of rows of equal length containing 0/1.
@@ -14,7 +13,7 @@ def gf2_rref_colwise(M: List[List[int]], clear_upper_triangle=True) -> List[List
     # Transpose M to get columns as rows
     m, n = len(M), len(M[0])
     A = [row[:] for row in M]
-    pivots: List[int] = []
+    pivots: list[int] = []
     for r in range(m):
         # Find pivot in row r
         pivot_c = None
@@ -42,8 +41,8 @@ def gf2_rref_colwise(M: List[List[int]], clear_upper_triangle=True) -> List[List
 
 
 def gf2_rref_rowwise(
-    M: List[List[int]], clear_upper_triangle=True
-) -> Tuple[List[List[int]], List[int]]:
+    M: list[list[int]], clear_upper_triangle=True
+) -> tuple[list[list[int]], list[int]]:
     """Return row-reduced echelon form over GF(2) and list of pivot columns.
 
     M is a list of rows of equal length containing 0/1.
@@ -53,7 +52,7 @@ def gf2_rref_rowwise(
     A = [row[:] for row in M]
     m = len(A)
     n = len(A[0])
-    pivots: List[int] = []
+    pivots: list[int] = []
     r = 0
     for c in range(n):
         # find pivot
@@ -81,14 +80,14 @@ def gf2_rref_rowwise(
     return A, pivots
 
 
-def gf2_rank(M: List[List[int]]) -> int:
+def gf2_rank(M: list[list[int]]) -> int:
     if not M:
         return 0
     _, piv = gf2_rref_rowwise(M)
     return len(piv)
 
 
-def gf2_nullspace(M: List[List[int]]) -> List[List[int]]:
+def gf2_nullspace(M: list[list[int]]) -> list[list[int]]:
     """Return a basis for the right nullspace of M over GF(2).
 
     Each vector x satisfies M x = 0 (treating rows of M and column vector x).
@@ -101,7 +100,7 @@ def gf2_nullspace(M: List[List[int]]) -> List[List[int]]:
     n = len(R[0]) if m else 0
     pivot_pos = set(piv)
     free_cols = [j for j in range(n) if j not in pivot_pos]
-    basis: List[List[int]] = []
+    basis: list[list[int]] = []
     # For each free variable, set it to 1 and solve for pivot vars
     for f in free_cols:
         x = [0] * n
@@ -117,7 +116,7 @@ def gf2_nullspace(M: List[List[int]]) -> List[List[int]]:
     return basis
 
 
-def gf2_left_nullspace(M: List[List[int]]) -> List[List[int]]:
+def gf2_left_nullspace(M: list[list[int]]) -> list[list[int]]:
     """Return a basis for the left nullspace of M, i.e., vectors w with w M = 0.
 
     Compute nullspace of M^T.
@@ -127,7 +126,7 @@ def gf2_left_nullspace(M: List[List[int]]) -> List[List[int]]:
     # Transpose M to get M^T (n x m)
     m = len(M)
     n = len(M[0]) if m else 0
-    MT: List[List[int]] = [[0] * m for _ in range(n)]
+    MT: list[list[int]] = [[0] * m for _ in range(n)]
     for i in range(m):
         row = M[i]
         for j in range(n):
@@ -138,8 +137,8 @@ def gf2_left_nullspace(M: List[List[int]]) -> List[List[int]]:
 
 
 def gf2_bidiagonalize(
-    A: List[List[int]],
-) -> tuple[List[List[int]], List[List[int]], int]:
+    A: list[list[int]],
+) -> tuple[list[list[int]], list[list[int]], int]:
     """
     Perform GF(2) row/column elimination to diagonalize A via
     U * A * V^T = diag(I_r, 0), returning (U, V, r).
@@ -201,7 +200,7 @@ def gf2_bidiagonalize(
     return U, V, r
 
 
-def gf2_is_in_span(v: List[int], basis: List[List[int]]) -> bool:
+def gf2_is_in_span(v: list[int], basis: list[list[int]]) -> bool:
     """Check if vector v is in the span of basis rows over GF(2)."""
     if not basis:
         return all(x == 0 for x in v)
@@ -214,7 +213,7 @@ def gf2_is_in_span(v: List[int], basis: List[List[int]]) -> bool:
     return rank_after == rank_before
 
 
-def gf2_are_not_in_span(rows: List[List[int]], basis: List[List[int]]) -> bool:
+def gf2_are_not_in_span(rows: list[list[int]], basis: list[list[int]]) -> bool:
     """Check if matrix has null intersection with basis rows over GF(2)."""
     if not basis:
         return all(x == 0 for x in rows)
