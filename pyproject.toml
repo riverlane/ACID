@@ -33,3 +33,6 @@ acid-tableau = "acid.tableau_visualiser.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["ACID/src"]
+
+[tool.ruff]
+line-length = 100

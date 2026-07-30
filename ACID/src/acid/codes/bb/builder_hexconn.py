@@ -161,7 +161,7 @@ def build_code_from_spec(
     connections: list[tuple[int, int, str]] = []
 
     obj_stabs = [
-        {embedding.qubit_id(*q) for q in q_s} for s, q_s in bb.stabilizers().items()
+        {embedding.qubit_coords_to_index(*q) for q in q_s} for s, q_s in bb.stabilizers().items()
     ]
 
     for ax in range(l):
@@ -170,14 +170,14 @@ def build_code_from_spec(
             even_odd = "O" if bb.even_odd_monomial(q) else "E"
 
             # left/right qubit for this monomial (a, b) in the embedding
-            l_q = embedding.qubit_id(*q.to_coordinate_LR_tuple("L"))
-            r_q = embedding.qubit_id(*q.to_coordinate_LR_tuple("R"))
+            l_q = embedding.qubit_coords_to_index(*q.to_coordinate_LR_tuple("L"))
+            r_q = embedding.qubit_coords_to_index(*q.to_coordinate_LR_tuple("R"))
 
             # other qubits part of the x stabilizer support for this monomial (a, b)
-            l_a2q = embedding.qubit_id(*(a2 * q).to_coordinate_LR_tuple("L"))
-            l_a3q = embedding.qubit_id(*(a3 * q).to_coordinate_LR_tuple("L"))
-            r_b2q = embedding.qubit_id(*(b2 * q).to_coordinate_LR_tuple("R"))
-            r_b3q = embedding.qubit_id(*(b3 * q).to_coordinate_LR_tuple("R"))
+            l_a2q = embedding.qubit_coords_to_index(*(a2 * q).to_coordinate_LR_tuple("L"))
+            l_a3q = embedding.qubit_coords_to_index(*(a3 * q).to_coordinate_LR_tuple("L"))
+            r_b2q = embedding.qubit_coords_to_index(*(b2 * q).to_coordinate_LR_tuple("R"))
+            r_b3q = embedding.qubit_coords_to_index(*(b3 * q).to_coordinate_LR_tuple("R"))
 
             # x stabilizer support qubits (left/right) for this monomial (a, b)
             x_map = [r_q, l_a2q, r_b2q, l_q, r_b3q, l_a3q]
@@ -188,10 +188,10 @@ def build_code_from_spec(
             shapes.append(StabiliserShape("X", hex_graph, SEC_length, x_map, label))
 
             # other qubits part of the z stabilizer support for this monomial (a, b)
-            r_a2invq = embedding.qubit_id(*(a2.inv() * q).to_coordinate_LR_tuple("R"))
-            r_a3invq = embedding.qubit_id(*(a3.inv() * q).to_coordinate_LR_tuple("R"))
-            l_b2invq = embedding.qubit_id(*(b2.inv() * q).to_coordinate_LR_tuple("L"))
-            l_b3invq = embedding.qubit_id(*(b3.inv() * q).to_coordinate_LR_tuple("L"))
+            r_a2invq = embedding.qubit_coords_to_index(*(a2.inv() * q).to_coordinate_LR_tuple("R"))
+            r_a3invq = embedding.qubit_coords_to_index(*(a3.inv() * q).to_coordinate_LR_tuple("R"))
+            l_b2invq = embedding.qubit_coords_to_index(*(b2.inv() * q).to_coordinate_LR_tuple("L"))
+            l_b3invq = embedding.qubit_coords_to_index(*(b3.inv() * q).to_coordinate_LR_tuple("L"))
 
             # z stabilizer support qubits (left/right) for this monomial (a, b)
             z_map = [r_q, l_b2invq, r_a2invq, l_q, r_a3invq, l_b3invq]
@@ -200,8 +200,8 @@ def build_code_from_spec(
             # z stabiliser shape for this monomial (a, b) in the embedding
             shapes.append(StabiliserShape("Z", hex_graph, SEC_length, z_map, label))
 
-            r_a2invb2q = embedding.qubit_id(*(a2.inv() * b2 * q).to_coordinate_LR_tuple("R"))
-            r_a3invb3q = embedding.qubit_id(*(a3.inv() * b3 * q).to_coordinate_LR_tuple("R"))
+            r_a2invb2q = embedding.qubit_coords_to_index(*(a2.inv() * b2 * q).to_coordinate_LR_tuple("R"))
+            r_a3invb3q = embedding.qubit_coords_to_index(*(a3.inv() * b3 * q).to_coordinate_LR_tuple("R"))
 
             connections.extend(
                 [

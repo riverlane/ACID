@@ -14,7 +14,7 @@ from .codes.bb.algebra import GroupRing, Monomial
 
 class Embedding(ABC):
     @abstractmethod
-    def qubit_id(self, a: int, b: int, c: int) -> int:
+    def qubit_coords_to_index(self, a: int, b: int, c: int) -> int:
         pass
 
     @abstractmethod
@@ -61,7 +61,7 @@ class SquareGridEmbedding(Embedding):
     def __post_init__(self):
         self.num_qubits = self.ring.l * self.ring.m * 2
 
-    def qubit_id(self, a: int, b: int, c: int) -> int:
+    def qubit_coords_to_index(self, a: int, b: int, c: int) -> int:
         a0, b0 = self.ring.canonical(a, b)
         return ((a0 * self.ring.m) + b0) * 2 + (c & 1)
 
@@ -80,7 +80,7 @@ class SquareGridEmbedding(Embedding):
         return x, y
 
     def id_and_coords_for(self, g: Monomial, c: int) -> tuple[int, tuple[float, float]]:
-        i = self.qubit_id(g.a, g.b, c)
+        i = self.qubit_coords_to_index(g.a, g.b, c)
         return i, self.coords(g.a, g.b, c)
 
     @property
@@ -100,7 +100,7 @@ class CoordMapEmbedding(Embedding):
         self._width = max(x for x, _ in self._xy_to_id) + 1 if self._xy_to_id else 0
         self._height = max(y for _, y in self._xy_to_id) + 1 if self._xy_to_id else 0
 
-    def qubit_id(self, a: int, b: int, c: int) -> int:
+    def qubit_coords_to_index(self, a: int, b: int, c: int) -> int:
         return self._xy_to_id[(a, b)]
 
     def id_to_tuple(self, qid: int) -> tuple[int, int, int]:
