@@ -118,11 +118,11 @@ class StabiliserSchedule:
 
             # Overlap qubits used by schedule-1 at this timestep, represented
             # in schedule-2 indexing for direct clash detection.
-            filtered_op_qubits_1 = set(
+            filtered_op_qubits_1 = {
                 self_to_other_qubits[q]
                 for q in itertools.chain(*filtered_ops_1[-1])
                 if q in shared_qubits_in_self
-            )
+            }
 
             # Reject simultaneous use of an overlap qubit unless the pair is the
             # same mapped edge (accounting for opposite Pauli orientation).
@@ -193,7 +193,7 @@ class StabiliserTemplate:
         connectivity_subgraph: Graph,
         SEC_cycle_length: int,
         name: str = "",
-        preferred_roots: list[int] = None,
+        preferred_roots: list[int] | None = None,
         preferred_edges: dict[tuple[int, int], list[int] | None] | None = None,
         schedule_hint: list[list[tuple[int, int]]] | None = None,
         layer_hint: int | None = None,
@@ -277,10 +277,10 @@ class StabiliserTemplate:
                     for a, b in ops:
                         e = (a, b) if a <= b else (b, a)
                         used[e] = t
-                pref_keys = set(
+                pref_keys = {
                     (u, v) if u <= v else (v, u)
-                    for (u, v) in self.preferred_edges.keys()
-                )
+                    for (u, v) in self.preferred_edges
+                }
                 used_keys = set(used.keys())
                 # Only allowed edges may be used
                 if not used_keys.issubset(pref_keys):
@@ -296,9 +296,9 @@ class StabiliserTemplate:
                         if times is not None:
                             # Must be used and at an allowed timestep
                             t_used = used.get(e, None)
-                            if t_used is None or t_used not in set(
+                            if t_used is None or t_used not in {
                                 int(x) for x in times
-                            ):
+                            }:
                                 time_ok = False
                                 break
             sched.preferred = bool(has_any_pref and root_ok and edges_ok and time_ok)
@@ -340,21 +340,21 @@ class SyndromeExtractionLayer:
 
     def __post_init__(self):
         self.cycle_length = next(iter(self.chosen.items()))[1].length
-        for _, schedule in self.chosen.items():
+        for schedule in self.chosen.values():
             assert schedule.length == self.cycle_length, (
                 "All schedules in a syndrome extraction layer must have the same length"
             )
 
-        self.x_roots = set(
+        self.x_roots = {
             s.qubit_map[shed.root]
             for s, shed in self.chosen.items()
             if s.stabiliser_template.pauli_type == "X"
-        )
-        self.z_roots = set(
+        }
+        self.z_roots = {
             s.qubit_map[shed.root]
             for s, shed in self.chosen.items()
             if s.stabiliser_template.pauli_type == "Z"
-        )
+        }
 
     def collect_CNOTS(self) -> list[list[tuple[int, int]]]:
         all_CNOTS: list[set[tuple[int, int]]] = [

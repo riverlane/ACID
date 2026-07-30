@@ -33,7 +33,7 @@ def analyze_layers(
     per_layer = []
     for t, layer in enumerate(layers):
         # actual measured set
-        all_measured = sorted(stab.label for stab in layer.chosen.keys())
+        all_measured = sorted(stab.label for stab in layer.chosen)
         mset = set(all_measured)
         # display-only measured (optional filter)
         if interesting_labels:

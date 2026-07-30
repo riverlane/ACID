@@ -123,7 +123,7 @@ class DefectiveCode:
         verify: bool = True,
     ) -> None:
         self.base_code = code
-        self.dropped_nodes: set[int] = set(int(q) for q in dropped_nodes)
+        self.dropped_nodes: set[int] = {int(q) for q in dropped_nodes}
         self.dropped_edges: list[tuple[int, int]] = [
             (int(u), int(v)) for (u, v) in dropped_edges
         ]
@@ -573,7 +573,7 @@ class DefectiveCode:
             q = label_to_quasi.get(label)
             if q is None:
                 continue
-            supp = sorted(list(q.support))
+            supp = sorted(q.support)
             if not supp:
                 continue
             if q.pauli_type == "X":
@@ -713,7 +713,7 @@ class DefectiveCode:
 
         # Step 4: Pair X/Z logicals (make them anti-commute in matched pairs)
         C = matmul_mod2_transpose(X_rows, Z_rows)
-        _, U, _, V_T, _, r = gf2_rank_normal_numpy(np.array(C))
+        _, U, _, V_T, _, _r = gf2_rank_normal_numpy(np.array(C))
 
         # U, V, r = gf2_bidiagonalize(C)
         # V = np.array(V, dtype=np.int8).tolist()
@@ -876,9 +876,7 @@ class DefectiveCode:
 
         def _is_drop_g(lab: str | None) -> bool:
             return bool(lab) and (
-                "_drop_" in lab
-                or lab.startswith("QgX_drop_")
-                or lab.startswith("QgZ_drop_")
+                "_drop_" in lab or lab.startswith(("QgX_drop_", "QgZ_drop_"))
             )
 
         num_drop_gauge_pairs = 0
@@ -895,13 +893,13 @@ class DefectiveCode:
         num_quasi_changed_supports = 0
         for q in self.all_quasis:
             lab = getattr(q, "label", "") or ""
-            if lab.startswith("DropX(") or lab.startswith("DropZ("):
+            if lab.startswith(("DropX(", "DropZ(")):
                 continue
             try:
-                parent_supp = set(int(x) for x in q.parent.qubit_map)  # type: ignore[attr-defined]
+                parent_supp = {int(x) for x in q.parent.qubit_map}  # type: ignore[attr-defined]
             except Exception:
                 parent_supp = set()
-            if set(int(x) for x in q.support) != parent_supp:
+            if {int(x) for x in q.support} != parent_supp:
                 num_quasi_changed_supports += 1
         return {
             "num_quasi": len(self.all_quasis),
@@ -932,7 +930,7 @@ class DefectiveCode:
                 if stab.label == label:
                     return (stab.pauli_type, sorted(stab.qubit_map))
             raise KeyError(f"Unknown quasi label: {label}")
-        return (q.pauli_type, sorted(list(q.support)))
+        return (q.pauli_type, sorted(q.support))
 
     def anticommutation_graph(self) -> nx.Graph:
         return self.anticomm_graph.copy()
@@ -1077,7 +1075,7 @@ class DefectiveCode:
             q = label_to_quasi.get(label)
             if q is None:
                 continue
-            untouched.append((q.pauli_type, sorted(list(q.support))))
+            untouched.append((q.pauli_type, sorted(q.support)))
         if debug:
             print("[viz] untouched stabilisers:", len(untouched))
 

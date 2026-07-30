@@ -106,7 +106,7 @@ class SyndromeExtractionCircuit:
 
         return {
             "L": int(self.L),
-            "solve_time_ms": int(round(max(0.0, float(self.solve_time)) * 1000)),
+            "solve_time_ms": round(max(0.0, float(self.solve_time)) * 1000),
             "labels": all_labels,
             "layers": out_layers,
             "product_completions": analysis.get("product_completions", {}),
@@ -157,15 +157,15 @@ class SyndromeExtractionCircuit:
         set_in = set(labels_in)
         set_dc = set(d_labels)
         if strict and set_in != set_dc:
-            missing = sorted(list(set_dc - set_in))
-            extra = sorted(list(set_in - set_dc))
+            missing = sorted(set_dc - set_in)
+            extra = sorted(set_in - set_dc)
             raise ValueError(
                 f"Label set mismatch between snapshot and defective code.\n"
                 f"Missing: {missing}\n"
                 f"Extra: {extra}"
             )
         # Use intersection if not strict
-        valid_labels = sorted(list(set_in & set_dc)) if not strict else labels_in
+        valid_labels = sorted(set_in & set_dc) if not strict else labels_in
 
         # Build stabilisers map by label without solving
         triplets: list[tuple[StabiliserTemplate, list[int], str]] = getattr(

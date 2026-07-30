@@ -180,7 +180,7 @@ class ScheduleSolver:
 
         res = prune_schedule_graph(self.scheduling_graph, M, verbose=verbose)
         self._prune_allowed_ids_by_label = {
-            lab: sorted(list(xs)) for lab, xs in res.allowed_per_label.items()
+            lab: sorted(xs) for lab, xs in res.allowed_per_label.items()
         }
         self._pruned_graph = res.filtered_graph
 

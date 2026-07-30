@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import itertools
+
 import networkx as nx
 
 from acid.base_code import BaseCode, StabiliserShape
@@ -99,7 +101,7 @@ def build_unrotated_surface_hex_code(
             else:
                 order = [(x - 1, y), (x, y - 1), (x + 1, y), (x, y + 1)]
 
-            for (x1, y1), (x2, y2) in zip(order[:1], order[1:]):
+            for (x1, y1), (x2, y2) in itertools.pairwise(order):
                 if not G.has_edge(idq(x1, y1), idq(x2, y2)):
                     raise RuntimeError(
                         f"Local stabiliser connectivity missing for X({x},{y}) between {(x1, y1)} and {(x2, y2)}"

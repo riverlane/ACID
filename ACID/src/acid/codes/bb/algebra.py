@@ -114,7 +114,7 @@ class Polynomial:
         if self.ring != other.ring:
             raise ValueError("Mismatched group rings")
         # Symmetric difference of term sets (mod 2)
-        s = set((t.a, t.b) for t in self.terms)
+        s = {(t.a, t.b) for t in self.terms}
         for t in other.terms:
             key = (t.a, t.b)
             if key in s:

@@ -18,7 +18,7 @@ class ScheduleIndex:
         self.label_to_root: list[dict[str, int]] = []
         self.root_to_label: list[dict[int, str]] = []
         for Lk in self.layers:
-            labs = set(stab.label for stab in Lk.chosen.keys())
+            labs = {stab.label for stab in Lk.chosen}
             self.per_layer_labels.append(labs)
             lab_to_root: dict[str, int] = {}
             root_to_lab: dict[int, str] = {}

@@ -49,7 +49,7 @@ def place_ancillas_right_of_bbox(
     anc_ids.extend(zeros)
     anc_ids.extend(plus)
 
-    x0, y0, x1, y1 = data_bbox_xy(embedding, data_ids)
+    _x0, y0, x1, _y1 = data_bbox_xy(embedding, data_ids)
     x_right = x1 + abs(dx)
     y_min = y0
     coords: list[tuple[int, float, float]] = []

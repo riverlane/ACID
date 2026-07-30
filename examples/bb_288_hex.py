@@ -43,7 +43,7 @@ def run(
         out: list[int] = []
         for p in parts:
             out.append(int(p))
-        return sorted(list({q for q in out}))
+        return sorted({q for q in out})
 
     def parse_couplers(s: str | None) -> list[tuple[int, int]]:
         if not s:
@@ -58,7 +58,7 @@ def run(
             b = int(b_s)
             u, v = (a, b) if a <= b else (b, a)
             out.append((u, v))
-        return sorted(list({t for t in out}))
+        return sorted({t for t in out})
 
     # Note: the CLI parsing for explicit lists is added below in main(); here we expect
     # to be called with either explicit lists parsed in or counts provided.

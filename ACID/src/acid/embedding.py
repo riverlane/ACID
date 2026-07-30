@@ -98,10 +98,10 @@ class CoordMapEmbedding(Embedding):
         self._id_to_xy = {qid: xy for xy, qid in self._xy_to_id.items()}
         self.num_qubits = len(self._id_to_xy)
         self._width = (
-            max(x for x, _ in self._xy_to_id.keys()) + 1 if self._xy_to_id else 0
+            max(x for x, _ in self._xy_to_id) + 1 if self._xy_to_id else 0
         )
         self._height = (
-            max(y for _, y in self._xy_to_id.keys()) + 1 if self._xy_to_id else 0
+            max(y for _, y in self._xy_to_id) + 1 if self._xy_to_id else 0
         )
 
     def qubit_id(self, a: int, b: int, c: int) -> int:

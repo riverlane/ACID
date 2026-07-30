@@ -68,7 +68,7 @@ def build_code_from_spec(
 
     # For sanity: object stabiliser supports for assert checks (as sets of qubit ids)
     obj_stabs = [
-        set(embedding.qubit_id(*q) for q in q_s) for s, q_s in bb.stabilizers().items()
+        {embedding.qubit_id(*q) for q in q_s} for s, q_s in bb.stabilizers().items()
     ]
 
     H = _h_template()

@@ -149,7 +149,7 @@ def plan_product_detectors(
                 )
                 if prev_idx < idx <= next_idx:
                     # propagate member mid-cycle Pauli
-                    typ, supp = dcode.quasi_support(m)
+                    _typ, supp = dcode.quasi_support(m)
                     n = dcode.base_code.num_qubits
                     Pmid = PauliString.from_supports(
                         supp if basis == "X" else [], [] if basis == "X" else supp, n
@@ -173,7 +173,7 @@ def plan_product_detectors(
         # Synthesize detectors per adjacent completion pair
         for i in range(len(completions) - 1):
             kind_a, B_rt_a, latest_a, A_rt_a = completions[i]
-            kind_b, B_rt_b, latest_b, A_rt_b = completions[i + 1]
+            kind_b, B_rt_b, latest_b, _A_rt_b = completions[i + 1]
 
             # Detector window is (A_i, B_{i+1}] in linearized schedule time.
             A_lin = -1 if A_rt_a is None else _lin_idx(L, A_rt_a[0], A_rt_a[1])

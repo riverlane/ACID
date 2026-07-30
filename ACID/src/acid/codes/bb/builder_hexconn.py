@@ -161,7 +161,7 @@ def build_code_from_spec(
     connections: list[tuple[int, int, str]] = []
 
     obj_stabs = [
-        set(embedding.qubit_id(*q) for q in q_s) for s, q_s in bb.stabilizers().items()
+        {embedding.qubit_id(*q) for q in q_s} for s, q_s in bb.stabilizers().items()
     ]
 
     for ax in range(l):

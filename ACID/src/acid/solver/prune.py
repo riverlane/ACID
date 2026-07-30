@@ -61,11 +61,11 @@ def prune_schedule_graph(
     for stab in scheduling_graph.nodes():
         lab = stab.label
         tmpl = stab.stabiliser_template
-        pref = set(
+        pref = {
             i
             for i, sch in enumerate(tmpl.schedules)
             if getattr(sch, "preferred", False)
-        )
+        }
         preferred_ids[lab] = pref
 
     # Keep sets per label

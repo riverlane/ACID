@@ -13,7 +13,7 @@ from acid.tableau_visualiser.visualiser import TableauVisualiser
 def run(layers: int = 5, solve_time: float = 60.0, ticks: int = 30) -> None:
     # 1) Build bb 144 code with degree-5 connectivity (no defects)
     spec = get_spec("bb144")
-    base, embedding, _ = deg5.build_code_from_spec(spec)
+    base, _embedding, _ = deg5.build_code_from_spec(spec)
     print(f"Built code 'bb144' (deg5): n={base.num_qubits}, shapes={len(base.shapes)}")
 
     # 2) No dropouts

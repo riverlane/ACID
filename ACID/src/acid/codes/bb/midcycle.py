@@ -71,8 +71,8 @@ class BBMidCycle:
             return ((a0 * self.ring.m) + b0) * 2 + (c & 1)
 
         stabs = self.stabilizers()
-        x_keys = [(a, b, basis) for (a, b, basis) in stabs.keys() if basis == "X"]
-        z_keys = [(a, b, basis) for (a, b, basis) in stabs.keys() if basis == "Z"]
+        x_keys = [(a, b, basis) for (a, b, basis) in stabs if basis == "X"]
+        z_keys = [(a, b, basis) for (a, b, basis) in stabs if basis == "Z"]
         Hx: list[list[int]] = []
         Hz: list[list[int]] = []
         labels: list[str] = []

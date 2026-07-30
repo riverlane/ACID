@@ -44,7 +44,7 @@ def run(
     def parse_qubits(s: str | None) -> list[int]:
         if not s:
             return []
-        return sorted(list({int(p) for p in re.split(r"[\s,]+", s.strip()) if p}))
+        return sorted({int(p) for p in re.split(r"[\s,]+", s.strip()) if p})
 
     def parse_couplers(s: str | None) -> list[tuple[int, int]]:
         if not s:
@@ -58,7 +58,7 @@ def run(
             b = int(b_s)
             u, v = (a, b) if a <= b else (b, a)
             out.append((u, v))
-        return sorted(list({t for t in out}))
+        return sorted({t for t in out})
 
     explicit_qubits = parse_qubits(drop_qubits)
     explicit_couplers = parse_couplers(drop_couplers)
