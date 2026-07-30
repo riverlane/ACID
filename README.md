@@ -7,7 +7,7 @@ This repo contains the core source code that implements ACID as described in my 
 To simply use ACID, install via pip:
 
 ```bash
-pip install ./ACID
+pip install .
 ```
 
 ### Running Examples
