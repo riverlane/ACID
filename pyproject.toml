@@ -17,11 +17,13 @@ dependencies = [
   "ortools",
   "stim>=1.12",
   "tqdm>=4.60",
-  "ruff==0.15.19",
 ]
 
 [project.optional-dependencies]
-# No optional extras required currently.
+dev = [
+  "ruff",
+  "ty",
+]
 
 [project.urls]
 Homepage = "https://example.org"
