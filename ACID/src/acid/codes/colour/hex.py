@@ -84,7 +84,7 @@ def build_colour_hex_code(
         if any(not in_dom(x, y) for (x, y) in nodes_xy):
             return
         # Local indexing
-        {xy: i for i, xy in enumerate(nodes_xy)}
+        # {xy: i for i, xy in enumerate(nodes_xy)}
         # Ensure qubits and add edges to global graph
         qmap = [ensure_qid(x, y) for (x, y) in nodes_xy]
         for ai, bi in edges_pairs:

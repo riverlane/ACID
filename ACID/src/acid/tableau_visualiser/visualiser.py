@@ -135,7 +135,7 @@ class TableauVisualiser:
 
         # Commuting bases membership
         sections: list[
-            tuple[CommutingPauliBasis, AntiCommutingPauliBasis], list[int]
+            tuple[CommutingPauliBasis | AntiCommutingPauliBasis, list[int]]
         ] = []
         for b in self.commuting_bases[::-1]:
             idxs: list[int] = []

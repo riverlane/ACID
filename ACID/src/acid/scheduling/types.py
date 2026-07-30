@@ -79,9 +79,7 @@ class StabiliserSchedule:
         ]
         return pauli_frames[:-1]
 
-    def compatible(
-        self, other: StabiliserSchedule, self_to_other_qubits: dict
-    ) -> bool:
+    def compatible(self, other: StabiliserSchedule, self_to_other_qubits: dict) -> bool:
         # Map local-overlap indices in both directions between the two schedules.
         other_to_self_qubits = {v: k for k, v in self_to_other_qubits.items()}
         shared_qubits_in_self = set(self_to_other_qubits.keys())
@@ -278,8 +276,7 @@ class StabiliserTemplate:
                         e = (a, b) if a <= b else (b, a)
                         used[e] = t
                 pref_keys = {
-                    (u, v) if u <= v else (v, u)
-                    for (u, v) in self.preferred_edges
+                    (u, v) if u <= v else (v, u) for (u, v) in self.preferred_edges
                 }
                 used_keys = set(used.keys())
                 # Only allowed edges may be used
@@ -296,9 +293,7 @@ class StabiliserTemplate:
                         if times is not None:
                             # Must be used and at an allowed timestep
                             t_used = used.get(e, None)
-                            if t_used is None or t_used not in {
-                                int(x) for x in times
-                            }:
+                            if t_used is None or t_used not in {int(x) for x in times}:
                                 time_ok = False
                                 break
             sched.preferred = bool(has_any_pref and root_ok and edges_ok and time_ok)

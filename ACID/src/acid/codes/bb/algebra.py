@@ -8,7 +8,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class GroupRing:
     """Represents the group ring Z_l x Z_m, where elements are pairs (a, b) with
-    a in Z_l andb in Z_m."""
+    a in Z_l and b in Z_m."""
 
     l: int
     m: int
@@ -85,9 +85,7 @@ class Polynomial:
         object.__setattr__(self, "terms", canonical)
 
     @staticmethod
-    def from_exponents(
-        exps: Iterable[tuple[int, int]], ring: GroupRing
-    ) -> Polynomial:
+    def from_exponents(exps: Iterable[tuple[int, int]], ring: GroupRing) -> Polynomial:
         return Polynomial(frozenset(Monomial(a, b, ring) for a, b in exps), ring)
 
     @staticmethod

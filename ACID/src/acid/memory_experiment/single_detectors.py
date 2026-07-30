@@ -45,7 +45,7 @@ def plan_quasi_detectors(
     n = dcode.base_code.num_qubits
 
     for lab in dcode.quasi_labels:  # type: ignore[attr-defined]
-        # dont include if filtered out or basis not included
+        # don't include if filtered out or basis not included
         if filter_labels is not None and lab not in filter_labels:
             continue
         basis = sched.basis_of[lab]

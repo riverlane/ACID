@@ -66,7 +66,8 @@ def plan_product_detectors(
                 dict[
                     str, tuple[int, int]
                 ],  # member -> most recent (round, layer) contraction time
-                tuple[int, int] | None,  # earliest among those most recent contraction times
+                tuple[int, int]
+                | None,  # earliest among those most recent contraction times
             ]
         ] = []
         completions.append(("init_mpp", None, {}, None))

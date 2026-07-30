@@ -54,7 +54,6 @@ class NoNoiseModel(NoiseModel):
     """No-op noise model."""
 
 
-
 @dataclass
 class DepolarizingNoiseModel(NoiseModel):
     """

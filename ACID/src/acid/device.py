@@ -38,10 +38,10 @@ class DeviceVisualisation:
     ]  # (qubit_1, qubit_2, connection_class). mark as defective in the .stim file
     connection_class_colours: dict[str, str]  # connection_class -> colour
     # Optional polygon overlays per category: list of ('X'|'Z', [qubit_ids...])
-    polygons_untouched: list[tuple[str, Iterable[int]]] = None
-    polygons_anticomm: list[tuple[str, Iterable[int]]] = None
-    polygons_products: list[tuple[str, Iterable[int]]] = None
-    polygons_gauge: list[tuple[str, Iterable[int]]] = None
+    polygons_untouched: list[tuple[str, Iterable[int]]] | None = None
+    polygons_anticomm: list[tuple[str, Iterable[int]]] | None = None
+    polygons_products: list[tuple[str, Iterable[int]]] | None = None
+    polygons_gauge: list[tuple[str, Iterable[int]]] | None = None
 
     def stim_with_overlays(
         self, include_reset: bool = True, *, debug: bool = False
