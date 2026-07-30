@@ -1,11 +1,10 @@
 from .experiment import MemoryExperiment, MemoryExperimentConfig
-from .noise import NoiseModel, NoNoiseModel, DepolarizingNoiseModel
+from .noise import DepolarizingNoiseModel, NoiseModel, NoNoiseModel
 
 __all__ = [
+    "DepolarizingNoiseModel",
     "MemoryExperiment",
     "MemoryExperimentConfig",
-    "NoiseModel",
     "NoNoiseModel",
-    "DepolarizingNoiseModel",
+    "NoiseModel",
 ]
-

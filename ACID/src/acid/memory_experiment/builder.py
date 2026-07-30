@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable, List, Tuple
 
 
 @dataclass
@@ -13,7 +13,8 @@ class StimBuilder:
     - Tracks current measurement count to resolve rec[-k] offsets at DETECTOR/OBS lines.
     - Provides helpers to append operations and get rec indices.
     """
-    lines: List[str]
+
+    lines: list[str]
     _rec_count: int = 0
     _tick_count: int = 0
 
@@ -41,16 +42,16 @@ class StimBuilder:
         if qs:
             self.append_line("RX " + " ".join(str(q) for q in qs))
 
-    def CX(self, pairs: List[Tuple[int, int]]) -> None:
+    def CX(self, pairs: list[tuple[int, int]]) -> None:
         if not pairs:
             return
-        flat: List[str] = []
+        flat: list[str] = []
         for c, t in pairs:
             flat.append(str(int(c)))
             flat.append(str(int(t)))
         self.append_line("CX " + " ".join(flat))
 
-    def MX(self, qubits: List[int]) -> List[int]:
+    def MX(self, qubits: list[int]) -> list[int]:
         qs = list(map(int, qubits))
         if not qs:
             return []
@@ -59,7 +60,7 @@ class StimBuilder:
         self._rec_count += len(qs)
         return recs
 
-    def MZ(self, qubits: List[int]) -> List[int]:
+    def MZ(self, qubits: list[int]) -> list[int]:
         qs = list(map(int, qubits))
         if not qs:
             return []
@@ -68,14 +69,14 @@ class StimBuilder:
         self._rec_count += len(qs)
         return recs
 
-    def MPP_terms(self, terms: List[List[Tuple[str, int]]]) -> List[int]:
+    def MPP_terms(self, terms: list[list[tuple[str, int]]]) -> list[int]:
         """
         Emit an MPP instruction where each term is [[('X',q1),('X',q2)], [('Z',q3),...], ...].
         Returns the list of rec indices produced.
         """
         if not terms:
             return []
-        parts: List[str] = []
+        parts: list[str] = []
         for term in terms:
             if not term:
                 continue
@@ -90,7 +91,7 @@ class StimBuilder:
     def QUBIT_COORDS(self, q: int, x: float, y: float) -> None:
         self.append_line(f"QUBIT_COORDS({x:.6g}, {y:.6g}) {int(q)}")
 
-    def DETECTOR(self, rec_indices: List[int]) -> None:
+    def DETECTOR(self, rec_indices: list[int]) -> None:
         """Emit a DETECTOR referencing given absolute rec indices (0-based)."""
         if not rec_indices:
             return
@@ -99,10 +100,9 @@ class StimBuilder:
         parts = [f"rec[{r}]" for r in rels]
         self.append_line("DETECTOR " + " ".join(parts))
 
-    def OBSERVABLE_INCLUDE(self, obs_index: int, rec_indices: List[int]) -> None:
+    def OBSERVABLE_INCLUDE(self, obs_index: int, rec_indices: list[int]) -> None:
         if not rec_indices:
             return
         rels = [-(self._rec_count - ri) for ri in rec_indices]
         parts = [f"rec[{r}]" for r in rels]
         self.append_line(f"OBSERVABLE_INCLUDE({int(obs_index)}) " + " ".join(parts))
-

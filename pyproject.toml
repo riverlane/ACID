@@ -20,7 +20,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# No optional extras required currently.
+dev = [
+  "ruff",
+  "ty",
+]
 
 [project.urls]
 Homepage = "https://example.org"
@@ -29,4 +32,4 @@ Homepage = "https://example.org"
 acid-tableau = "acid.tableau_visualiser.cli:main"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["ACID/src"]

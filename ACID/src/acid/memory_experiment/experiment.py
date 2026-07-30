@@ -1,22 +1,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
 
-from acid.embedding import Embedding
 from acid.defects.defective_code import DefectiveCode
 from acid.defects.syndrome_extraction_circuit import SyndromeExtractionCircuit
-
+from acid.embedding import Embedding
 from acid.memory_experiment.builder import StimBuilder
 from acid.memory_experiment.embedding_utils import place_ancillas_right_of_bbox
 from acid.memory_experiment.noise import NoiseModel, NoNoiseModel
 
+from .observables import plan_observables
+from .product_detectors import plan_product_detectors
 from .rec_log import MeasurementLog
+from .registry import DetectorRegistry
 from .schedule_index import ScheduleIndex
 from .single_detectors import plan_quasi_detectors
-from .product_detectors import plan_product_detectors
-from .observables import plan_observables
-from .registry import DetectorRegistry
 
 
 @dataclass
@@ -51,18 +49,18 @@ class MemoryExperiment:
         self.L = len(self.circuit.layers)
         self.registry = DetectorRegistry()
 
-    def _root_qubits_by_basis(self, layer) -> Tuple[List[int], List[int]]:
+    def _root_qubits_by_basis(self, layer) -> tuple[list[int], list[int]]:
         return layer.roots_by_basis()
 
-    def _root_qubit_map(self, layer) -> Dict[int, str]:
-        m: Dict[int, str] = {}
+    def _root_qubit_map(self, layer) -> dict[int, str]:
+        m: dict[int, str] = {}
         for stab, shed in layer.chosen.items():
             root_q = stab.qubit_map[shed.root]
             m[root_q] = stab.label
         return m
 
-    def _entangling_pairs(self) -> List[Tuple[int, int]]:
-        pairs: List[Tuple[int, int]] = []
+    def _entangling_pairs(self) -> list[tuple[int, int]]:
+        pairs: list[tuple[int, int]] = []
         for i in range(self.k):
             for q in self._Lx[i].x_support():
                 pairs.append((-(i + 1), int(q)))
@@ -81,25 +79,30 @@ class MemoryExperiment:
         # Prepend base visualisation
         overlay = self.dcode.visualisation_stim(self.embedding)
         overlay_lines = overlay.rstrip().splitlines()
-        overlay_tick_count = sum(1 for ln in overlay_lines if ln.strip() == 'TICK')
-        b = StimBuilder(lines=list(overlay_lines))
-        b._tick_count = overlay_tick_count  # type: ignore[attr-defined]
+        overlay_tick_count = sum(1 for ln in overlay_lines if ln.strip() == "TICK")
+        # helper object to build the stim circuit
+        stim_builder = StimBuilder(lines=list(overlay_lines))
+        stim_builder._tick_count = overlay_tick_count  # type: ignore[attr-defined]
 
         # Ancillas (only if doing state prep)
         n = self.dcode.base_code.num_qubits
-        zeros: List[int] = []
-        plus: List[int] = []
-        anc_coords: List[Tuple[int, float, float]] = []
+        zeros: list[int] = []
+        plus: list[int] = []
+        anc_coords: list[tuple[int, float, float]] = []
         if include_state_prep:
             zeros, plus, anc_coords = place_ancillas_right_of_bbox(
-                self.embedding, list(range(n)), self.k, dx=self.cfg.ancilla_dx, dy=self.cfg.ancilla_dy
+                self.embedding,
+                list(range(n)),
+                self.k,
+                dx=self.cfg.ancilla_dx,
+                dy=self.cfg.ancilla_dy,
             )
             for q, x, y in anc_coords:
-                b.QUBIT_COORDS(q, x, y)
+                stim_builder.QUBIT_COORDS(q, x, y)
             if zeros:
-                b.R(zeros)
+                stim_builder.R(zeros)
             if plus:
-                b.RX(plus)
+                stim_builder.RX(plus)
 
         log = MeasurementLog()
 
@@ -108,22 +111,22 @@ class MemoryExperiment:
             # X pass
             for lab in sorted(self.dcode.quasi_labels):  # type: ignore[attr-defined]
                 typ, supp = self.dcode.quasi_support(lab)
-                if typ != 'X' or not include_x_detectors:
+                if typ != "X" or not include_x_detectors:
                     continue
                 term = [[(typ, q) for q in supp]]
-                rec = b.MPP_terms(term)[0]
-                log.record_init_mpp('X', lab, rec)
+                rec = stim_builder.MPP_terms(term)[0]
+                log.record_init_mpp("X", lab, rec)
             # Z pass
             for lab in sorted(self.dcode.quasi_labels):  # type: ignore[attr-defined]
                 typ, supp = self.dcode.quasi_support(lab)
-                if typ != 'Z' or not include_z_detectors:
+                if typ != "Z" or not include_z_detectors:
                     continue
                 term = [[(typ, q) for q in supp]]
-                rec = b.MPP_terms(term)[0]
-                log.record_init_mpp('Z', lab, rec)
+                rec = stim_builder.MPP_terms(term)[0]
+                log.record_init_mpp("Z", lab, rec)
 
         # Entangle (noiseless), only if doing state prep
-        ent_pairs: List[Tuple[int, int]] = []
+        ent_pairs: list[tuple[int, int]] = []
         if include_state_prep:
             ent_pairs_placeholder = self._entangling_pairs()
             anc_zero = zeros
@@ -134,8 +137,8 @@ class MemoryExperiment:
                 if t < 0:
                     t = anc_zero[-t - 1 - self.k]
                 ent_pairs.append((int(c), int(t)))
-                b.CX([(int(c), int(t))])
-            b.tick()
+                stim_builder.CX([(int(c), int(t))])
+            stim_builder.tick()
 
         # Noisy rounds: R cycles over L layers
         for r in range(1, self.cfg.R + 1):
@@ -144,74 +147,78 @@ class MemoryExperiment:
                 for step in Lk.collect_cx_stim():
                     if step:
                         pairs = [(int(c), int(tg)) for (c, tg) in step]
-                        b.CX(pairs)
-                        self.noise.apply_after_gate(b, "CX", pairs)
-                        b.tick()
+                        stim_builder.CX(pairs)
+                        self.noise.apply_after_gate(stim_builder, "CX", pairs)
+                        stim_builder.tick()
                 # Measure roots
                 x_roots, z_roots = self._root_qubits_by_basis(Lk)
                 if x_roots:
-                    self.noise.apply_before_measure(b, 'X', sorted(x_roots))
+                    self.noise.apply_before_measure(stim_builder, "X", sorted(x_roots))
                     xr = sorted(x_roots)
-                    x_recs = b.MX(xr)
+                    x_recs = stim_builder.MX(xr)
                     for q, rec in zip(xr, x_recs):
-                        log.record_layer_meas(r, t, 'X', int(q), int(rec))
+                        log.record_layer_meas(r, t, "X", int(q), int(rec))
                 if z_roots:
-                    self.noise.apply_before_measure(b, 'Z', sorted(z_roots))
+                    self.noise.apply_before_measure(stim_builder, "Z", sorted(z_roots))
                     zr = sorted(z_roots)
-                    z_recs = b.MZ(zr)
+                    z_recs = stim_builder.MZ(zr)
                     for q, rec in zip(zr, z_recs):
-                        log.record_layer_meas(r, t, 'Z', int(q), int(rec))
+                        log.record_layer_meas(r, t, "Z", int(q), int(rec))
                 # TICK after measurement
-                b.tick()
+                stim_builder.tick()
                 # Resets
                 if x_roots:
-                    b.RX(sorted(x_roots))
-                    self.noise.apply_after_reset(b, sorted(x_roots), basis='X')
+                    stim_builder.RX(sorted(x_roots))
+                    self.noise.apply_after_reset(
+                        stim_builder, sorted(x_roots), basis="X"
+                    )
                 if z_roots:
-                    b.R(sorted(z_roots))
-                    self.noise.apply_after_reset(b, sorted(z_roots), basis='Z')
-                b.tick()
+                    stim_builder.R(sorted(z_roots))
+                    self.noise.apply_after_reset(
+                        stim_builder, sorted(z_roots), basis="Z"
+                    )
+                stim_builder.tick()
                 # Expand
                 steps = Lk.collect_cx_stim()
                 for step in reversed(steps):
                     if step:
                         pairs = [(int(c), int(tg)) for (c, tg) in step]
-                        b.CX(pairs)
-                        self.noise.apply_after_gate(b, "CX", pairs)
-                        b.tick()
-                        
+                        stim_builder.CX(pairs)
+                        self.noise.apply_after_gate(stim_builder, "CX", pairs)
+                        stim_builder.tick()
+
         # Unentangle and final MPP only if doing state prep
         if include_state_prep:
             # Unentangle (reverse, noiseless)
             for c, t in reversed(ent_pairs):
-                b.CX([(int(c), int(t))])
-            b.tick()
+                stim_builder.CX([(int(c), int(t))])
+            stim_builder.tick()
             # Final MPP: X then Z
             for lab in sorted(self.dcode.quasi_labels):  # type: ignore[attr-defined]
                 typ, supp = self.dcode.quasi_support(lab)
-                if typ != 'X' or not include_x_detectors:
+                if typ != "X" or not include_x_detectors:
                     continue
                 term = [[(typ, q) for q in supp]]
-                rec = b.MPP_terms(term)[0]
-                log.record_final_mpp('X', lab, rec)
-            b.tick()
+                rec = stim_builder.MPP_terms(term)[0]
+                log.record_final_mpp("X", lab, rec)
+            stim_builder.tick()
             for lab in sorted(self.dcode.quasi_labels):  # type: ignore[attr-defined]
                 typ, supp = self.dcode.quasi_support(lab)
-                if typ != 'Z' or not include_z_detectors:
+                if typ != "Z" or not include_z_detectors:
                     continue
                 term = [[(typ, q) for q in supp]]
-                rec = b.MPP_terms(term)[0]
-                log.record_final_mpp('Z', lab, rec)
-            b.tick()
+                rec = stim_builder.MPP_terms(term)[0]
+                log.record_final_mpp("Z", lab, rec)
+            stim_builder.tick()
 
         # Ancilla observables (noiseless) — record final ancilla recs, but don't emit yet
-        z_anc_recs: List[int] = []
-        x_anc_recs: List[int] = []
+        z_anc_recs: list[int] = []
+        x_anc_recs: list[int] = []
         if include_state_prep:
             if zeros and include_z_detectors:
-                z_anc_recs = b.MZ(zeros)
+                z_anc_recs = stim_builder.MZ(zeros)
             if plus and include_x_detectors:
-                x_anc_recs = b.MX(plus)
+                x_anc_recs = stim_builder.MX(plus)
 
         # Plan and emit detectors (offline)
         # Detectors/observables only if requested (and typically require state prep)
@@ -240,18 +247,20 @@ class MemoryExperiment:
             )
             if debug:
                 try:
-                    print(f"[detectors] planning: single_quasi={len(quasi_plan.rec_sets)}")
+                    print(
+                        f"[detectors] planning: single_quasi={len(quasi_plan.rec_sets)}"
+                    )
                     print(f"[detectors] planning: product={len(prod_plan.rec_sets)}")
                 except Exception:
                     pass
             next_id = 0
             for recs, info in zip(quasi_plan.rec_sets, quasi_plan.infos):
-                b.DETECTOR(recs)
+                stim_builder.DETECTOR(recs)
                 info.id = next_id
                 next_id += 1
                 self.registry.add(info)
             for recs, info in zip(prod_plan.rec_sets, prod_plan.infos):
-                b.DETECTOR(recs)
+                stim_builder.DETECTOR(recs)
                 info.id = next_id
                 next_id += 1
                 self.registry.add(info)
@@ -272,10 +281,10 @@ class MemoryExperiment:
             )
             obs_index = 0
             for recs in obs_z_sets:
-                b.OBSERVABLE_INCLUDE(obs_index, recs)
+                stim_builder.OBSERVABLE_INCLUDE(obs_index, recs)
                 obs_index += 1
             for recs in obs_x_sets:
-                b.OBSERVABLE_INCLUDE(obs_index, recs)
+                stim_builder.OBSERVABLE_INCLUDE(obs_index, recs)
                 obs_index += 1
 
-        return "\n".join(b.lines) + "\n"
+        return "\n".join(stim_builder.lines) + "\n"

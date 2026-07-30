@@ -2,18 +2,21 @@
 
 Schedules are lists of directed moves per timestep that gather onto the root.
 """
-from typing import Hashable, Iterable, List, Tuple, Dict
+
 import itertools as it
+from collections import namedtuple
+from collections.abc import Hashable, Iterable
+
 import networkx as nx
 from networkx.algorithms.tree.mst import SpanningTreeIterator
-from collections import namedtuple
 
 # A Schedule is: {"root": node, "steps": List[List[Tuple[u,v]]]}
 # where steps[t] is the list of directed edges executed at timestep t.
 
 Schedule = namedtuple("Schedule", ["root", "steps"])
 
-def enumerate_all_schedules(G: nx.Graph, max_steps: int) -> Iterable[Dict[str, object]]:
+
+def enumerate_all_schedules(G: nx.Graph, max_steps: int) -> Iterable[dict[str, object]]:
     """
     Enumerate every valid gather schedule for each spanning tree of G and each root,
     subject to a horizon of `max_steps`. Each yielded item is:
@@ -36,18 +39,20 @@ def enumerate_all_schedules(G: nx.Graph, max_steps: int) -> Iterable[Dict[str, o
                 continue
 
             # Enumerate schedules that gather to `root` within max_steps.
-            for steps in _gather_subtree_schedules(adj, height, root, parent=None, max_steps_left=max_steps):
+            for steps in _gather_subtree_schedules(
+                adj, height, root, parent=None, max_steps_left=max_steps
+            ):
                 yield Schedule(root, steps)
 
 
 def _compute_subtree_heights(
-    adj: Dict[Hashable, Dict[Hashable, dict]], root: Hashable
-) -> Dict[Hashable, int]:
+    adj: dict[Hashable, dict[Hashable, dict]], root: Hashable
+) -> dict[Hashable, int]:
     """
     Return subtree heights for a fixed root: height[u] = max distance from u to
     any descendant (leaf has height 0). Uses post-order DFS rooted at `root`.
     """
-    height: Dict[Hashable, int] = {}
+    height: dict[Hashable, int] = {}
 
     def dfs(u: Hashable, parent: Hashable) -> int:
         h = 0
@@ -63,12 +68,12 @@ def _compute_subtree_heights(
 
 
 def _gather_subtree_schedules(
-    adj: Dict[Hashable, Dict[Hashable, dict]],
-    height: Dict[Hashable, int],
+    adj: dict[Hashable, dict[Hashable, dict]],
+    height: dict[Hashable, int],
     u: Hashable,
     parent: Hashable,
     max_steps_left: int,
-) -> Iterable[List[List[Tuple[Hashable, Hashable]]]]:
+) -> Iterable[list[list[tuple[Hashable, Hashable]]]]:
     """
     Enumerate schedules that gather all tokens in the subtree rooted at `u`
     (w.r.t. the chosen global root) *to u* within `max_steps_left` steps.

@@ -3,16 +3,16 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import List, Dict
 
 import stim
 
+from acid.pauli import CommutingPauliBasis, PauliString
+
 from .basis import default_single_qubit_basis
 from .visualiser import TableauVisualiser
-from acid.pauli import CommutingPauliBasis, PauliString, AntiCommutingPauliBasis
 
 
-def load_commuting_bases(path: Path, n: int) -> List[CommutingPauliBasis]:
+def load_commuting_bases(path: Path, n: int) -> list[CommutingPauliBasis]:
     """Load commuting bases from a JSON file.
 
     Supported format:
@@ -23,22 +23,30 @@ def load_commuting_bases(path: Path, n: int) -> List[CommutingPauliBasis]:
     Rows are 2n binary (X|Z). Non-'stabiliser' kinds are ignored.
     """
     data = json.loads(path.read_text())
-    out: List[CommutingPauliBasis] = []
+    out: list[CommutingPauliBasis] = []
     for obj in data:
-        if str(obj.get('kind','stabiliser')).lower() != 'stabiliser':
+        if str(obj.get("kind", "stabiliser")).lower() != "stabiliser":
             continue
-        name = str(obj.get('name', 'User Basis'))
-        prio = int(obj.get('priority', 0))
-        rows = [PauliString.from_2n(list(map(int, r))) for r in obj.get('rows', [])]
+        name = str(obj.get("name", "User Basis"))
+        prio = int(obj.get("priority", 0))
+        rows = [PauliString.from_2n(list(map(int, r))) for r in obj.get("rows", [])]
         out.append(CommutingPauliBasis(name=name, priority=prio, rows=rows))
     return out
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Tableau visualiser for stim circuits (commuting bases)")
+    ap = argparse.ArgumentParser(
+        description="Tableau visualiser for stim circuits (commuting bases)"
+    )
     ap.add_argument("stim_file", type=str, help="Path to .stim circuit")
-    ap.add_argument("--bases", type=str, help="Optional JSON file defining additional commuting bases")
-    ap.add_argument("--ticks", type=int, default=0, help="How many TICKs to step (0=all)")
+    ap.add_argument(
+        "--bases",
+        type=str,
+        help="Optional JSON file defining additional commuting bases",
+    )
+    ap.add_argument(
+        "--ticks", type=int, default=0, help="How many TICKs to step (0=all)"
+    )
     args = ap.parse_args()
 
     circ = stim.Circuit(Path(args.stim_file).read_text())
@@ -47,11 +55,17 @@ def main() -> int:
     vis = TableauVisualiser(circ, commuting_bases=[], anticommuting_bases={})
     n = vis.n
 
-    commuting: List[CommutingPauliBasis] = []
+    commuting: list[CommutingPauliBasis] = []
     # Default single-qubit commuting basis
     default_basis_2n = default_single_qubit_basis(n)
     default_rows = [PauliString.from_2n(r) for r in default_basis_2n.rows]
-    commuting.append(CommutingPauliBasis(name=default_basis_2n.name, priority=default_basis_2n.priority, rows=default_rows))
+    commuting.append(
+        CommutingPauliBasis(
+            name=default_basis_2n.name,
+            priority=default_basis_2n.priority,
+            rows=default_rows,
+        )
+    )
 
     if args.bases:
         commuting.extend(load_commuting_bases(Path(args.bases), n))

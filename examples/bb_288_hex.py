@@ -2,12 +2,11 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
-from typing import List, Tuple
 import random
 import re
+from pathlib import Path
 
-from acid.codes.bb.builder_hexconn import get_spec, build_code_from_spec
+from acid.codes.bb.builder_hexconn import build_code_from_spec, get_spec
 from acid.defects.defective_code import DefectiveCode
 from acid.memory_experiment.experiment import MemoryExperiment, MemoryExperimentConfig
 from acid.stim_to_shatter_url import prompt_open_shatter
@@ -29,34 +28,37 @@ def run(
     key = "bb288"
     spec = get_spec(key)
     base, embedding, connections = build_code_from_spec(spec)
-    print(f"Built base code '{key}' (hex): n={base.num_qubits}, shapes={len(base.shapes)}")
+    print(
+        f"Built base code '{key}' (hex): n={base.num_qubits}, shapes={len(base.shapes)}"
+    )
 
     # 2) Select dropped qubits and couplers (explicit lists override random counts)
     uniq_edges = sorted({(min(u, v), max(u, v)) for (u, v, _cls) in connections})
     all_qubits = list(range(base.num_qubits))
 
-    def parse_qubits(s: str | None) -> List[int]:
+    def parse_qubits(s: str | None) -> list[int]:
         if not s:
             return []
         parts = [p for p in re.split(r"[\s,]+", s.strip()) if p]
-        out: List[int] = []
+        out: list[int] = []
         for p in parts:
             out.append(int(p))
-        return sorted(list({q for q in out}))
+        return sorted({q for q in out})
 
-    def parse_couplers(s: str | None) -> List[Tuple[int, int]]:
+    def parse_couplers(s: str | None) -> list[tuple[int, int]]:
         if not s:
             return []
         pairs = [p for p in re.split(r"[\s,]+", s.strip()) if p]
-        out: List[Tuple[int, int]] = []
+        out: list[tuple[int, int]] = []
         for token in pairs:
-            if '-' not in token:
+            if "-" not in token:
                 raise ValueError(f"Invalid coupler token '{token}'. Use 'u-v'.")
-            a_s, b_s = token.split('-', 1)
-            a = int(a_s); b = int(b_s)
+            a_s, b_s = token.split("-", 1)
+            a = int(a_s)
+            b = int(b_s)
             u, v = (a, b) if a <= b else (b, a)
             out.append((u, v))
-        return sorted(list({t for t in out}))
+        return sorted({t for t in out})
 
     # Note: the CLI parsing for explicit lists is added below in main(); here we expect
     # to be called with either explicit lists parsed in or counts provided.
@@ -67,32 +69,46 @@ def run(
     explicit_couplers = parse_couplers(drop_couplers)
 
     if explicit_qubits and n_dropped_qubits:
-        raise SystemExit("Specify either --n-dropped-qubits or --drop-qubits, not both.")
+        raise SystemExit(
+            "Specify either --n-dropped-qubits or --drop-qubits, not both."
+        )
     if explicit_couplers and n_dropped_couplers:
-        raise SystemExit("Specify either --n-dropped-couplers or --drop-couplers, not both.")
+        raise SystemExit(
+            "Specify either --n-dropped-couplers or --drop-couplers, not both."
+        )
 
     if explicit_qubits:
         for q in explicit_qubits:
             if q not in all_qubits:
-                raise SystemExit(f"Dropped qubit {q} out of range [0..{base.num_qubits-1}]")
-        dropped_nodes: List[int] = explicit_qubits
+                raise SystemExit(
+                    f"Dropped qubit {q} out of range [0..{base.num_qubits - 1}]"
+                )
+        dropped_nodes: list[int] = explicit_qubits
     else:
         nQ = max(0, int(n_dropped_qubits))
-        dropped_nodes = random.sample(all_qubits, min(nQ, len(all_qubits))) if nQ > 0 else []
+        dropped_nodes = (
+            random.sample(all_qubits, min(nQ, len(all_qubits))) if nQ > 0 else []
+        )
 
     if explicit_couplers:
         valid = set(uniq_edges)
         for e in explicit_couplers:
             if e not in valid:
-                raise SystemExit(f"Dropped coupler {e[0]}-{e[1]} not in device connectivity")
-        dropped_edges: List[Tuple[int, int]] = explicit_couplers
+                raise SystemExit(
+                    f"Dropped coupler {e[0]}-{e[1]} not in device connectivity"
+                )
+        dropped_edges: list[tuple[int, int]] = explicit_couplers
     else:
         nE = max(0, int(n_dropped_couplers))
-        dropped_edges = random.sample(uniq_edges, min(nE, len(uniq_edges))) if nE > 0 else []
+        dropped_edges = (
+            random.sample(uniq_edges, min(nE, len(uniq_edges))) if nE > 0 else []
+        )
     print(f"Dropouts: nodes={dropped_nodes} edges={dropped_edges}")
 
     # 3) Defective code and stats
-    dcode = DefectiveCode(base, dropped_nodes=dropped_nodes, dropped_edges=dropped_edges)
+    dcode = DefectiveCode(
+        base, dropped_nodes=dropped_nodes, dropped_edges=dropped_edges
+    )
     stats = dcode.stats()
     print("Stats:")
     for k in sorted(stats.keys()):
@@ -113,12 +129,19 @@ def run(
             print(f"  L={L_try} failed: {e}", flush=True)
             continue
     if circuit is None:
-        raise SystemExit("No feasible schedule found for L in [2..6]. Try increasing solve time.")
+        raise SystemExit(
+            "No feasible schedule found for L in [2..6]. Try increasing solve time."
+        )
     counts = [len(layer.chosen) for layer in circuit.layers]
     print(f"Layered schedule chosen counts: {counts}")
 
     # 5) Emit a full memory experiment with R rounds (detectors, observables optional)
-    exp = MemoryExperiment(dcode=dcode, circuit=circuit, embedding=embedding, cfg=MemoryExperimentConfig(R=int(rounds)))
+    exp = MemoryExperiment(
+        dcode=dcode,
+        circuit=circuit,
+        embedding=embedding,
+        cfg=MemoryExperimentConfig(R=int(rounds)),
+    )
     stim_text = exp.build(
         include_x_detectors=bool(output_detectors_and_observables),
         include_z_detectors=bool(output_detectors_and_observables),
@@ -142,17 +165,41 @@ def run(
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="BB bb288 (hex): compile and emit memory experiment")
+    ap = argparse.ArgumentParser(
+        description="BB bb288 (hex): compile and emit memory experiment"
+    )
     ap.add_argument("--solve-time", type=float, default=30.0)
     ap.add_argument("--rounds", type=int, default=1)
     ap.add_argument("--out", type=str)
-    ap.add_argument("--n-dropped-qubits", type=int, default=0, help="Number of randomly dropped qubits (mutually exclusive with --drop-qubits)")
-    ap.add_argument("--n-dropped-couplers", type=int, default=0, help="Number of randomly dropped couplers (mutually exclusive with --drop-couplers)")
-    ap.add_argument("--drop-qubits", type=str, help="Comma/space-separated list of qubit ids to drop (e.g. '1,2,5')")
-    ap.add_argument("--drop-couplers", type=str, help="Comma/space-separated list of couplers 'u-v' to drop (e.g. '1-7,3-8')")
+    ap.add_argument(
+        "--n-dropped-qubits",
+        type=int,
+        default=1,
+        help="Number of randomly dropped qubits (mutually exclusive with --drop-qubits)",
+    )
+    ap.add_argument(
+        "--n-dropped-couplers",
+        type=int,
+        default=0,
+        help="Number of randomly dropped couplers (mutually exclusive with --drop-couplers)",
+    )
+    ap.add_argument(
+        "--drop-qubits",
+        type=str,
+        help="Comma/space-separated list of qubit ids to drop (e.g. '1,2,5')",
+    )
+    ap.add_argument(
+        "--drop-couplers",
+        type=str,
+        help="Comma/space-separated list of couplers 'u-v' to drop (e.g. '1-7,3-8')",
+    )
     ap.add_argument("--output-state-prep", action="store_true")
     ap.add_argument("--output-detectors-and-observables", action="store_true")
-    ap.add_argument("--no-web-prompt", action="store_true", help="Do not prompt to open Shatter in a browser")
+    ap.add_argument(
+        "--no-web-prompt",
+        action="store_true",
+        help="Do not prompt to open Shatter in a browser",
+    )
     args = ap.parse_args()
     if args.output_detectors_and_observables and not args.output_state_prep:
         ap.error("--output-detectors-and-observables requires --output-state-prep")

@@ -1,26 +1,30 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Set, Tuple
 
 import networkx as nx
 
 
 @dataclass
 class PruningResult:
-    allowed_per_label: Dict[str, Set[int]]
+    allowed_per_label: dict[str, set[int]]
     filtered_graph: nx.DiGraph
-    stats: Dict[str, object]
+    stats: dict[str, object]
 
 
-def _summary(nums: List[int]) -> Dict[str, float]:
+def _summary(nums: list[int]) -> dict[str, float]:
     if not nums:
         return {"min": 0.0, "max": 0.0, "median": 0.0, "mean": 0.0}
     a = sorted(nums)
     n = len(a)
     mid = a[n // 2] if (n % 2) == 1 else (0.5 * (a[n // 2 - 1] + a[n // 2]))
     s = sum(a)
-    return {"min": float(a[0]), "max": float(a[-1]), "median": float(mid), "mean": float(s) / float(n)}
+    return {
+        "min": float(a[0]),
+        "max": float(a[-1]),
+        "median": float(mid),
+        "mean": float(s) / float(n),
+    }
 
 
 def prune_schedule_graph(
@@ -35,8 +39,8 @@ def prune_schedule_graph(
         raise TypeError("scheduling_graph must be a networkx.DiGraph")
 
     # Stabiliser labels and schedule counts
-    labels: List[str] = []
-    K_by_label: Dict[str, int] = {}
+    labels: list[str] = []
+    K_by_label: dict[str, int] = {}
     for stab in scheduling_graph.nodes():
         lab = getattr(stab, "label", None)
         if not isinstance(lab, str) or not lab:
@@ -53,22 +57,28 @@ def prune_schedule_graph(
         K_by_label[lab] = K
 
     # Preferred ids per label
-    preferred_ids: Dict[str, Set[int]] = {}
+    preferred_ids: dict[str, set[int]] = {}
     for stab in scheduling_graph.nodes():
-        lab = getattr(stab, "label")
-        tmpl = getattr(stab, "stabiliser_template")
-        pref = set(i for i, sch in enumerate(tmpl.schedules) if getattr(sch, "preferred", False))
+        lab = stab.label
+        tmpl = stab.stabiliser_template
+        pref = {
+            i
+            for i, sch in enumerate(tmpl.schedules)
+            if getattr(sch, "preferred", False)
+        }
         preferred_ids[lab] = pref
 
     # Keep sets per label
-    kept: Dict[str, Set[int]] = {lab: set() for lab in labels}
+    kept: dict[str, set[int]] = {lab: set() for lab in labels}
     preferred_total = 0
     for lab in labels:
         K = K_by_label[lab]
         target = min(M, K)
         pref = preferred_ids.get(lab, set())
         if len(pref) > target:
-            raise RuntimeError(f"Preferred schedules ({len(pref)}) exceed M={target} for stabiliser {lab}")
+            raise RuntimeError(
+                f"Preferred schedules ({len(pref)}) exceed M={target} for stabiliser {lab}"
+            )
         if K <= target:
             kept[lab] = set(range(K))
         else:
@@ -76,30 +86,38 @@ def prune_schedule_graph(
         preferred_total += len(pref)
 
     if preferred_total == 0 and verbose:
-        print("[prune] warning: no preferred schedules marked across the schedule graph")
+        print(
+            "[prune] warning: no preferred schedules marked across the schedule graph"
+        )
 
     # Precompute neighbor compatibility maps for scoring
     from collections import defaultdict
-    map_out: Dict[object, Dict[str, Dict[int, Set[int]]]] = {}
-    map_in: Dict[object, Dict[str, Dict[int, Set[int]]]] = {}
 
-    node_by_label: Dict[str, object] = {getattr(stab, "label"): stab for stab in scheduling_graph.nodes()}
+    map_out: dict[object, dict[str, dict[int, set[int]]]] = {}
+    map_in: dict[object, dict[str, dict[int, set[int]]]] = {}
+
+    node_by_label: dict[str, object] = {
+        stab.label: stab for stab in scheduling_graph.nodes()
+    }
     it_edges = scheduling_graph.edges(data=True)
     if verbose:
         try:
             from tqdm import tqdm  # type: ignore
-            it_edges = tqdm(list(it_edges), desc="[prune] build compat maps", leave=False)
+
+            it_edges = tqdm(
+                list(it_edges), desc="[prune] build compat maps", leave=False
+            )
         except Exception:
             pass
     for u, v, data in it_edges:
         allowed = set(data.get("allowed_pairs") or [])
         u_map = map_out.setdefault(u, {})
-        mout = u_map.setdefault(getattr(v, "label"), defaultdict(set))
-        for (ku, kv) in allowed:
+        mout = u_map.setdefault(v.label, defaultdict(set))
+        for ku, kv in allowed:
             mout[int(ku)].add(int(kv))
         v_map_in = map_in.setdefault(v, {})
-        minv = v_map_in.setdefault(getattr(u, "label"), defaultdict(set))
-        for (ku, kv) in allowed:
+        minv = v_map_in.setdefault(u.label, defaultdict(set))
+        for ku, kv in allowed:
             minv[int(kv)].add(int(ku))
 
     # Scoring and fill for labels where K > M
@@ -107,6 +125,7 @@ def prune_schedule_graph(
     if verbose:
         try:
             from tqdm import tqdm  # type: ignore
+
             it_labels = list(it_labels)
             it_labels = tqdm(it_labels, desc="[prune] score+fill labels", leave=False)
         except Exception:
@@ -123,15 +142,15 @@ def prune_schedule_graph(
         in_by_label = map_in.get(u_node, {})
 
         # Neighbor preferred sets
-        neigh_pref: Dict[str, Set[int]] = {}
+        neigh_pref: dict[str, set[int]] = {}
         for _, v, _ in scheduling_graph.out_edges(u_node, data=True):
-            v_lab = getattr(v, "label")
+            v_lab = v.label
             neigh_pref[v_lab] = preferred_ids.get(v_lab, set())
         for w, _, _ in scheduling_graph.in_edges(u_node, data=True):
-            w_lab = getattr(w, "label")
+            w_lab = w.label
             neigh_pref[w_lab] = preferred_ids.get(w_lab, set())
 
-        scored: List[Tuple[int, int, int]] = []
+        scored: list[tuple[int, int, int]] = []
         for i in candidates:
             primary = 0
             tieb = 0
@@ -156,19 +175,23 @@ def prune_schedule_graph(
     G2.add_nodes_from(scheduling_graph.nodes())
     for u, v, data in scheduling_graph.edges(data=True):
         allowed = set(data.get("allowed_pairs") or [])
-        u_lab = getattr(u, "label")
-        v_lab = getattr(v, "label")
-        filt = {(ku, kv) for (ku, kv) in allowed if ku in kept[u_lab] and kv in kept[v_lab]}
+        u_lab = u.label
+        v_lab = v.label
+        filt = {
+            (ku, kv) for (ku, kv) in allowed if ku in kept[u_lab] and kv in kept[v_lab]
+        }
         G2.add_edge(u, v, allowed_pairs=filt)
 
     counts_list = [K_by_label[lab] for lab in labels]
     preferred_counts = [len(preferred_ids.get(lab, set())) for lab in labels]
-    stats: Dict[str, object] = {
+    stats: dict[str, object] = {
         "schedule_counts_by_label": {lab: K_by_label[lab] for lab in labels},
         "schedule_counts_summary": _summary(counts_list),
-        "preferred_count_by_label": {lab: int(len(preferred_ids.get(lab, set()))) for lab in labels},
+        "preferred_count_by_label": {
+            lab: len(preferred_ids.get(lab, set())) for lab in labels
+        },
         "preferred_counts_summary": _summary(preferred_counts),
-        "selected_count_by_label": {lab: int(len(kept[lab])) for lab in labels},
+        "selected_count_by_label": {lab: len(kept[lab]) for lab in labels},
         "params": {"M": int(M)},
     }
 

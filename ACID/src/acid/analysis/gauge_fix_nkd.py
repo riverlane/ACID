@@ -3,7 +3,6 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 from itertools import product
-from typing import Dict, List, Tuple, Optional
 
 from acid.defects.defective_code import DefectiveCode
 from acid.pauli import PauliString, StabiliserCode
@@ -15,15 +14,17 @@ class GaugeFixNKDResult:
     combos_total: int
     eval_count: int
     timed_out: bool
-    best_choice: Optional[List[int]]
-    best_n: Optional[int]
-    best_k: Optional[int]
-    best_d: Optional[int]
+    best_choice: list[int] | None
+    best_n: int | None
+    best_k: int | None
+    best_d: int | None
 
 
-def _basis_rows_to_Hx_Hz(rows: List[PauliString], n: int) -> Tuple[List[List[int]], List[List[int]]]:
-    Hx: List[List[int]] = []
-    Hz: List[List[int]] = []
+def _basis_rows_to_Hx_Hz(
+    rows: list[PauliString], n: int
+) -> tuple[list[list[int]], list[list[int]]]:
+    Hx: list[list[int]] = []
+    Hz: list[list[int]] = []
     for p in rows:
         if any(b & 1 for b in p.Z):
             # Treat as Z row
@@ -36,7 +37,7 @@ def _basis_rows_to_Hx_Hz(rows: List[PauliString], n: int) -> Tuple[List[List[int
 
 def _build_code_for_choice(
     dcode: DefectiveCode,
-    choice_bits: List[int],
+    choice_bits: list[int],
 ) -> StabiliserCode:
     """
     Build a CSS StabiliserCode by gauge-fixing:
@@ -48,7 +49,7 @@ def _build_code_for_choice(
     # Untouched + products
     base = dcode.midcycle_untouched_stabilisers()
     prod = dcode.midcycle_product_stabilisers()
-    rows: List[PauliString] = []
+    rows: list[PauliString] = []
     rows.extend(base.rows)
     if prod is not None:
         rows.extend(prod.rows)
@@ -62,7 +63,7 @@ def _build_code_for_choice(
             rows.append(Gz[i])
     # Convert to Hx/Hz
     Hx_rows, Hz_rows = _basis_rows_to_Hx_Hz(rows, n)
-    labels: List[str] = [f"r{i}" for i in range(len(Hx_rows) + len(Hz_rows))]
+    labels: list[str] = [f"r{i}" for i in range(len(Hx_rows) + len(Hz_rows))]
     return StabiliserCode(num_qubits=n, row_labels=labels, Hx=Hx_rows, Hz=Hz_rows)
 
 
@@ -86,10 +87,10 @@ def gauge_fixed_nkd(
     g = min(len(Gx), len(Gz))
     combos_total = 1 << g
     start = time.monotonic()
-    best_d: Optional[int] = None
-    best_n: Optional[int] = None
-    best_k: Optional[int] = None
-    best_choice: Optional[List[int]] = None
+    best_d: int | None = None
+    best_n: int | None = None
+    best_k: int | None = None
+    best_choice: list[int] | None = None
     eval_count = 0
     for bits in product([0, 1], repeat=g):
         # Check global timeout
@@ -134,4 +135,3 @@ def gauge_fixed_nkd(
         best_k=best_k,
         best_d=best_d,
     )
-

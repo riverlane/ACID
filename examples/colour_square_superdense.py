@@ -2,15 +2,14 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import os
-from typing import List, Tuple
 import random
 import re
+from pathlib import Path
 
 from acid.codes.colour.square import build_colour_square_code
-from acid.embedding import CoordMapEmbedding
 from acid.defects.defective_code import DefectiveCode
+from acid.embedding import CoordMapEmbedding
 from acid.memory_experiment.experiment import MemoryExperiment, MemoryExperimentConfig
 from acid.stim_to_shatter_url import prompt_open_shatter
 
@@ -30,62 +29,92 @@ def run(
     drop_qubits: str | None = None,
     drop_couplers: str | None = None,
 ) -> None:
-    print("[warning] Superdense colour code can take a while to enumerate schedules and solve. Pruning is enabled by default (M=15).", flush=True)
+    print(
+        "[warning] Superdense colour code can take a while to enumerate schedules and solve. Pruning is enabled by default (M=15).",
+        flush=True,
+    )
     if verbose:
         os.environ["FAB_SCHEDULE_ENUM_VERBOSE"] = "1"
         os.environ["FAB_SCHEDULE_BUILD_VERBOSE"] = "1"
     base, coords = build_colour_square_code(int(distance))
     embedding = CoordMapEmbedding(coords)
-    print(f"Built colour code (superdense, square grid), d={distance}: n={base.num_qubits}, shapes={len(base.shapes)}")
+    print(
+        f"Built colour code (superdense, square grid), d={distance}: n={base.num_qubits}, shapes={len(base.shapes)}"
+    )
 
     # Dropouts (explicit lists override random counts)
-    uniq_edges = sorted({(min(u, v), max(u, v)) for (u, v) in base.connectivity_graph.edges()})
+    uniq_edges = sorted(
+        {(min(u, v), max(u, v)) for (u, v) in base.connectivity_graph.edges()}
+    )
     all_qubits = list(range(base.num_qubits))
-    def parse_qubits(s: str | None) -> List[int]:
+
+    def parse_qubits(s: str | None) -> list[int]:
         if not s:
             return []
-        return sorted(list({int(p) for p in re.split(r"[\s,]+", s.strip()) if p}))
-    def parse_couplers(s: str | None) -> List[Tuple[int, int]]:
+        return sorted({int(p) for p in re.split(r"[\s,]+", s.strip()) if p})
+
+    def parse_couplers(s: str | None) -> list[tuple[int, int]]:
         if not s:
             return []
-        out: List[Tuple[int, int]] = []
+        out: list[tuple[int, int]] = []
         for token in [p for p in re.split(r"[\s,]+", s.strip()) if p]:
-            if '-' not in token:
+            if "-" not in token:
                 raise ValueError(f"Invalid coupler token '{token}'. Use 'u-v'.")
-            a_s, b_s = token.split('-', 1)
-            a = int(a_s); b = int(b_s)
+            a_s, b_s = token.split("-", 1)
+            a = int(a_s)
+            b = int(b_s)
             u, v = (a, b) if a <= b else (b, a)
             out.append((u, v))
-        return sorted(list({t for t in out}))
+        return sorted({t for t in out})
+
     explicit_qubits = parse_qubits(drop_qubits)
     explicit_couplers = parse_couplers(drop_couplers)
     if explicit_qubits and n_dropped_qubits:
-        raise SystemExit("Specify either --n-dropped-qubits or --drop-qubits, not both.")
+        raise SystemExit(
+            "Specify either --n-dropped-qubits or --drop-qubits, not both."
+        )
     if explicit_couplers and n_dropped_couplers:
-        raise SystemExit("Specify either --n-dropped-couplers or --drop-couplers, not both.")
+        raise SystemExit(
+            "Specify either --n-dropped-couplers or --drop-couplers, not both."
+        )
     if explicit_qubits:
         for q in explicit_qubits:
             if q not in all_qubits:
-                raise SystemExit(f"Dropped qubit {q} out of range [0..{base.num_qubits-1}]")
-        dropped_nodes: List[int] = explicit_qubits
+                raise SystemExit(
+                    f"Dropped qubit {q} out of range [0..{base.num_qubits - 1}]"
+                )
+        dropped_nodes: list[int] = explicit_qubits
     else:
         nQ = max(0, int(n_dropped_qubits))
-        dropped_nodes = random.sample(all_qubits, min(nQ, len(all_qubits))) if nQ > 0 else []
+        dropped_nodes = (
+            random.sample(all_qubits, min(nQ, len(all_qubits))) if nQ > 0 else []
+        )
     if explicit_couplers:
         valid = set(uniq_edges)
         for e in explicit_couplers:
             if e not in valid:
-                raise SystemExit(f"Dropped coupler {e[0]}-{e[1]} not in device connectivity")
-        dropped_edges: List[Tuple[int, int]] = explicit_couplers
+                raise SystemExit(
+                    f"Dropped coupler {e[0]}-{e[1]} not in device connectivity"
+                )
+        dropped_edges: list[tuple[int, int]] = explicit_couplers
     else:
         nE = max(0, int(n_dropped_couplers))
-        dropped_edges = random.sample(uniq_edges, min(nE, len(uniq_edges))) if nE > 0 else []
+        dropped_edges = (
+            random.sample(uniq_edges, min(nE, len(uniq_edges))) if nE > 0 else []
+        )
     print(f"Dropouts: nodes={dropped_nodes} edges={dropped_edges}")
 
-    dcode = DefectiveCode(base, dropped_nodes=dropped_nodes, dropped_edges=dropped_edges)
+    dcode = DefectiveCode(
+        base, dropped_nodes=dropped_nodes, dropped_edges=dropped_edges
+    )
     # Enable pruning by default for superdense colour (default M=15)
     try:
-        dcode.prepare_solver(prune_params={"M": int(kept_schedules_per_quasi_stabilisers), "verbose": True})
+        dcode.prepare_solver(
+            prune_params={
+                "M": int(kept_schedules_per_quasi_stabilisers),
+                "verbose": True,
+            }
+        )
     except Exception as e:
         print(f"[warn] pruning setup failed: {e}")
     print("Stats:")
@@ -109,7 +138,12 @@ def run(
         raise SystemExit("No feasible schedule found for L in [2..6].")
 
     # Memory experiment
-    exp = MemoryExperiment(dcode=dcode, circuit=circuit, embedding=embedding, cfg=MemoryExperimentConfig(R=int(rounds)))
+    exp = MemoryExperiment(
+        dcode=dcode,
+        circuit=circuit,
+        embedding=embedding,
+        cfg=MemoryExperimentConfig(R=int(rounds)),
+    )
     stim_text = exp.build(
         include_x_detectors=bool(output_detectors_and_observables),
         include_z_detectors=bool(output_detectors_and_observables),
@@ -131,20 +165,53 @@ def run(
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Colour code (superdense, square grid): compile and emit memory experiment")
+    ap = argparse.ArgumentParser(
+        description="Colour code (superdense, square grid): compile and emit memory experiment"
+    )
     ap.add_argument("--distance", type=int, default=7)
     ap.add_argument("--solve-time", type=float, default=60.0)
     ap.add_argument("--rounds", type=int, default=1)
     ap.add_argument("--out", type=str)
-    ap.add_argument("--n-dropped-qubits", type=int, default=0, help="Number of randomly dropped qubits (mutually exclusive with --drop-qubits)")
-    ap.add_argument("--n-dropped-couplers", type=int, default=0, help="Number of randomly dropped couplers (mutually exclusive with --drop-couplers)")
-    ap.add_argument("--drop-qubits", type=str, help="Comma/space-separated list of qubit ids to drop (e.g. '1,2,5')")
-    ap.add_argument("--drop-couplers", type=str, help="Comma/space-separated list of couplers 'u-v' to drop (e.g. '1-7,3-8')")
+    ap.add_argument(
+        "--n-dropped-qubits",
+        type=int,
+        default=0,
+        help="Number of randomly dropped qubits (mutually exclusive with --drop-qubits)",
+    )
+    ap.add_argument(
+        "--n-dropped-couplers",
+        type=int,
+        default=0,
+        help="Number of randomly dropped couplers (mutually exclusive with --drop-couplers)",
+    )
+    ap.add_argument(
+        "--drop-qubits",
+        type=str,
+        help="Comma/space-separated list of qubit ids to drop (e.g. '1,2,5')",
+    )
+    ap.add_argument(
+        "--drop-couplers",
+        type=str,
+        help="Comma/space-separated list of couplers 'u-v' to drop (e.g. '1-7,3-8')",
+    )
     ap.add_argument("--output-state-prep", action="store_true")
     ap.add_argument("--output-detectors-and-observables", action="store_true")
-    ap.add_argument("--kept-schedules-per-quasi-stabilisers", type=int, default=15, help="Pruning: keep at most M schedules per quasi-stabiliser (default: 15)")
-    ap.add_argument("--verbose", action="store_true", help="Enable verbose schedule enumeration/build with tqdm progress")
-    ap.add_argument("--no-web-prompt", action="store_true", help="Do not prompt to open Shatter in a browser")
+    ap.add_argument(
+        "--kept-schedules-per-quasi-stabilisers",
+        type=int,
+        default=15,
+        help="Pruning: keep at most M schedules per quasi-stabiliser (default: 15)",
+    )
+    ap.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose schedule enumeration/build with tqdm progress",
+    )
+    ap.add_argument(
+        "--no-web-prompt",
+        action="store_true",
+        help="Do not prompt to open Shatter in a browser",
+    )
     args = ap.parse_args()
     if args.output_detectors_and_observables and not args.output_state_prep:
         ap.error("--output-detectors-and-observables requires --output-state-prep")

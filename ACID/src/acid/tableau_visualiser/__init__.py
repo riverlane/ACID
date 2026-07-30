@@ -1,2 +1,1 @@
 """Stim tableau visualisation helpers."""
-

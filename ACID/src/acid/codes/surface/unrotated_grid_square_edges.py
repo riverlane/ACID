@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
 import networkx as nx
 
 from acid.base_code import BaseCode, StabiliserShape
@@ -9,11 +8,16 @@ from acid.base_code import BaseCode, StabiliserShape
 def _cycle4() -> nx.Graph:
     G = nx.Graph()
     G.add_nodes_from(range(4))
-    G.add_edge(0, 1); G.add_edge(1, 2); G.add_edge(2, 3); G.add_edge(3, 0)
+    G.add_edge(0, 1)
+    G.add_edge(1, 2)
+    G.add_edge(2, 3)
+    G.add_edge(3, 0)
     return G
 
 
-def build_unrotated_surface_grid_square_edges_code(d: int) -> Tuple[BaseCode, Dict[Tuple[int,int], int]]:
+def build_unrotated_surface_grid_square_edges_code(
+    d: int,
+) -> tuple[BaseCode, dict[tuple[int, int], int]]:
     """
     Distance-d unrotated surface (grid connectivity with square edges to the boundary).
 
@@ -32,7 +36,7 @@ def build_unrotated_surface_grid_square_edges_code(d: int) -> Tuple[BaseCode, Di
     """
     W = 2 * d + 1
     H = 2 * d + 1
-    coord_to_qid: Dict[Tuple[int, int], int] = {}
+    coord_to_qid: dict[tuple[int, int], int] = {}
     qid = 0
     # Place qubits at (even,even) and (odd,odd) within [0..2d], excluding corners
     for x in range(W):
@@ -52,7 +56,7 @@ def build_unrotated_surface_grid_square_edges_code(d: int) -> Tuple[BaseCode, Di
     G = nx.Graph()
     G.add_nodes_from(range(qid))
 
-    shapes: List[StabiliserShape] = []
+    shapes: list[StabiliserShape] = []
 
     cyc4 = _cycle4()
 
@@ -67,7 +71,7 @@ def build_unrotated_surface_grid_square_edges_code(d: int) -> Tuple[BaseCode, Di
             if not (hasq(*u) and hasq(*l) and hasq(*dwn) and hasq(*r)):
                 continue
             qmap = [idq(*u), idq(*l), idq(*dwn), idq(*r)]
-            shapes.append(StabiliserShape('X', cyc4, 2, qmap, f"X({x},{y})"))
+            shapes.append(StabiliserShape("X", cyc4, 2, qmap, f"X({x},{y})"))
             # device edges around the square
             G.add_edge(qmap[0], qmap[1])
             G.add_edge(qmap[1], qmap[2])
@@ -84,23 +88,24 @@ def build_unrotated_surface_grid_square_edges_code(d: int) -> Tuple[BaseCode, Di
             if not (hasq(*u) and hasq(*l) and hasq(*dwn) and hasq(*r)):
                 continue
             qmap = [idq(*u), idq(*l), idq(*dwn), idq(*r)]
-            shapes.append(StabiliserShape('Z', cyc4, 2, qmap, f"Z({x},{y})"))
+            shapes.append(StabiliserShape("Z", cyc4, 2, qmap, f"Z({x},{y})"))
             G.add_edge(qmap[0], qmap[1])
             G.add_edge(qmap[1], qmap[2])
             G.add_edge(qmap[2], qmap[3])
             G.add_edge(qmap[3], qmap[0])
 
     # Boundary single-qubit stabilisers (no additional edges)
-    G1 = nx.Graph(); G1.add_nodes_from([0])
+    G1 = nx.Graph()
+    G1.add_nodes_from([0])
     for x in range(2, 2 * d, 2):
         for y in [0, 2 * d]:
             if hasq(x, y):
-                shapes.append(StabiliserShape('Z', G1, 2, [idq(x, y)], f"Z({x},{y})"))
+                shapes.append(StabiliserShape("Z", G1, 2, [idq(x, y)], f"Z({x},{y})"))
 
     for y in range(2, 2 * d, 2):
         for x in [0, 2 * d]:
             if hasq(x, y):
-                shapes.append(StabiliserShape('X', G1, 2, [idq(x, y)], f"X({x},{y})"))
+                shapes.append(StabiliserShape("X", G1, 2, [idq(x, y)], f"X({x},{y})"))
 
     base = BaseCode(num_qubits=qid, connectivity_graph=G, shapes=shapes)
     base.validate_local_connectivity()
