@@ -129,7 +129,7 @@ def build_unrotated_surface_hex_code(
                 order = [(x + 1, y), (x, y - 1), (x - 1, y)]
             else:
                 order = [(x + 1, y), (x, y + 1), (x - 1, y), (x, y - 1)]
-            for (x1, y1), (x2, y2) in zip(order[1:], order[:1]):
+            for (x1, y1), (x2, y2) in zip(order[1:], order[:-1]):
                 if not G.has_edge(idq(x1, y1), idq(x2, y2)):
                     raise RuntimeError(
                         f"Local stabiliser connectivity missing for Z({x},{y}) between {(x1, y1)} and {(x2, y2)}"
