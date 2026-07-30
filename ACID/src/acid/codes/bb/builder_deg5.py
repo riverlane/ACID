@@ -23,7 +23,7 @@ def _h_template() -> nx.Graph:
 
 
 def build_code_from_spec(
-    spec: CodeSpec,t
+    spec: CodeSpec,
 ) -> Tuple[BaseCode, SquareGridEmbedding, List[Tuple[int, int, str]]]:
     """
     Build a BaseCode with degree-5 connectivity derived directly from the BB polynomials.

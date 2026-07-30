@@ -80,15 +80,25 @@ class StabiliserSchedule:
         ]
         return pauli_frames[:-1]
 
-    def compatible(self, other: "StabiliserSchedule", common_qubits: dict) -> bool:
-        common_qubits_reverse = {v: k for k, v in common_qubits.items()}
-        common_qubits_1 = set(common_qubits.keys())
-        common_qubits_2 = set(common_qubits.values())
-        if self.root in common_qubits_1 and other.root in common_qubits_2:
-            if common_qubits[self.root] == other.root:
+    def compatible(
+        self, other: "StabiliserSchedule", self_to_other_qubits: dict
+    ) -> bool:
+        # Map local-overlap indices in both directions between the two schedules.
+        other_to_self_qubits = {v: k for k, v in self_to_other_qubits.items()}
+        shared_qubits_in_self = set(self_to_other_qubits.keys())
+        shared_qubits_in_other = set(self_to_other_qubits.values())
+
+        # If both roots land on the same physical qubit, they cannot coexist.
+        if self.root in shared_qubits_in_self and other.root in shared_qubits_in_other:
+            if self_to_other_qubits[self.root] == other.root:
                 return False
+
+        # Put both schedules into a shared orientation so edge comparisons are meaningful
+        # across X/Z templates.
         ops_1_standard = self.ops if other.pauli_type == "X" else self.reversed_ops
         ops_2_standard = other.ops if self.pauli_type == "X" else other.reversed_ops
+
+        # Keep only operations touching overlap qubits, timestep by timestep.
         filtered_ops_1 = []
         filtered_ops_2 = []
         for ops_1, ops_2 in zip(ops_1_standard, ops_2_standard):
@@ -96,59 +106,81 @@ class StabiliserSchedule:
                 [
                     (a, b)
                     for (a, b) in ops_1
-                    if a in common_qubits_1 or b in common_qubits_1
+                    if a in shared_qubits_in_self or b in shared_qubits_in_self
                 ]
             )
             filtered_ops_2.append(
                 [
                     (a, b)
                     for (a, b) in ops_2
-                    if a in common_qubits_2 or b in common_qubits_2
+                    if a in shared_qubits_in_other or b in shared_qubits_in_other
                 ]
             )
+
+            # Overlap qubits used by schedule-1 at this timestep, represented
+            # in schedule-2 indexing for direct clash detection.
             filtered_op_qubits_1 = set(
-                common_qubits[q]
+                self_to_other_qubits[q]
                 for q in itertools.chain(*filtered_ops_1[-1])
-                if q in common_qubits_1
+                if q in shared_qubits_in_self
             )
+
+            # Reject simultaneous use of an overlap qubit unless the pair is the
+            # same mapped edge (accounting for opposite Pauli orientation).
             for a2, b2 in filtered_ops_2[-1]:
-                if a2 in common_qubits_2 and b2 in common_qubits_2:
+                if a2 in shared_qubits_in_other and b2 in shared_qubits_in_other:
                     a_flip_2, b_flip_2 = (
                         (a2, b2) if self.pauli_type == other.pauli_type else (b2, a2)
                     )
                     if (
-                        common_qubits_reverse[a_flip_2],
-                        common_qubits_reverse[b_flip_2],
+                        other_to_self_qubits[a_flip_2],
+                        other_to_self_qubits[b_flip_2],
                     ) in filtered_ops_1[-1]:
                         continue
                 if a2 in filtered_op_qubits_1 or b2 in filtered_op_qubits_1:
                     return False
+
+        # Pauli-frame compatibility checks across each timestep.
         pf_1 = self.pauli_frames
         pf_2 = other.pauli_frames
         for ops_1, ops_2, pf_1_t, pf_2_t in zip(
             filtered_ops_1, filtered_ops_2, pf_1, pf_2
         ):
+            # Validate schedule-1 ops against schedule-2 frame state.
             for a1, b1 in ops_1:
-                if a1 in common_qubits_1 and b1 in common_qubits_1:
+                if a1 in shared_qubits_in_self and b1 in shared_qubits_in_self:
                     a_flip_1, b_flip_1 = (
                         (a1, b1) if self.pauli_type == other.pauli_type else (b1, a1)
                     )
-                    if (common_qubits[a_flip_1], common_qubits[b_flip_1]) in ops_2:
+                    if (
+                        self_to_other_qubits[a_flip_1],
+                        self_to_other_qubits[b_flip_1],
+                    ) in ops_2:
                         continue
-                if b1 in common_qubits_1 and pf_2_t[common_qubits[b1]] == 1:
+                if (
+                    b1 in shared_qubits_in_self
+                    and pf_2_t[self_to_other_qubits[b1]] == 1
+                ):
                     return False
+
+            # Validate schedule-2 ops against schedule-1 frame state.
             for a2, b2 in ops_2:
-                if a2 in common_qubits_2 and b2 in common_qubits_2:
+                if a2 in shared_qubits_in_other and b2 in shared_qubits_in_other:
                     a_flip_2, b_flip_2 = (
                         (a2, b2) if self.pauli_type == other.pauli_type else (b2, a2)
                     )
                     if (
-                        common_qubits_reverse[a_flip_2],
-                        common_qubits_reverse[b_flip_2],
+                        other_to_self_qubits[a_flip_2],
+                        other_to_self_qubits[b_flip_2],
                     ) in ops_1:
                         continue
-                if b2 in common_qubits_2 and pf_1_t[common_qubits_reverse[b2]] == 1:
+                if (
+                    b2 in shared_qubits_in_other
+                    and pf_1_t[other_to_self_qubits[b2]] == 1
+                ):
                     return False
+
+                # No shared-qubit or frame conflicts found.
         return True
 
 

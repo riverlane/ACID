@@ -50,54 +50,80 @@ def plan_product_detectors(
     # We'll build per-product cache on the fly
 
     next_id = 0
-    for p in products:
-        basis = p.pauli_type
-        members = list(p.members)
+    for current_product in products:
+        basis = current_product.pauli_type
+        members = list(current_product.members)
         # Build completion sequence B_i:
         # B0 = init_mpp, intermediate B_i = per-round completion events,
         # BN = final_mpp. Each contract event carries member latest times c_q
         # and A_i (earliest among those latest times).
-        periodic = sorted(prod_plan.completions.get(p.label, []))
+        sorted_completion_times = sorted(
+            prod_plan.completions.get(current_product.label, [])
+        )
         completions: List[
             Tuple[
-                str,
-                Optional[Tuple[int, int]],
-                Dict[str, Tuple[int, int]],
-                Optional[Tuple[int, int]],
+                str,  # kind
+                Optional[Tuple[int, int]],  # (round, layer) product completion time
+                Dict[
+                    str, Tuple[int, int]
+                ],  # member -> most recent (round, layer) contraction time
+                Optional[
+                    Tuple[int, int]
+                ],  # earliest among those most recent contraction times
             ]
         ] = []
-        # Tuple fields: (kind, B_rt, member_latest, A_rt)
         completions.append(("init_mpp", None, {}, None))
-        for r in range(1, R + 1):
-            for t_star in periodic:
-                # member_latest: latest (r, t_m) for each member <= t_star
-                member_latest: Dict[str, Tuple[int, int]] = {}
-                for m in members:
-                    ts_all = sched.contracting_ts.get(m, [])
-                    ts_le = [t for t in ts_all if t <= t_star]
+        for round_number in range(1, R + 1):
+            for completion_time in sorted_completion_times:
+                # we want the last time each member was measured in this round, up to the
+                # completion time.
+                member_to_lastest_time_measured: Dict[str, Tuple[int, int]] = {}
+                for product_member in members:
+                    ts_all = sched.contracting_ts.get(product_member, [])
+                    ts_le = [t for t in ts_all if t <= completion_time]
                     if not ts_le:
                         raise RuntimeError(
-                            f"Product completion invariant violated: member {m} not measured by t*={t_star} in round {r} for product {p.label}"
+                            f"Product completion invariant violated: member {product_member} not "
+                            f"measured by t*={completion_time} in round {round_number} for product "
+                            f"{current_product.label}"
                         )
-                    t_m = max(ts_le)
-                    member_latest[m] = (r, t_m)
-                # A_i: earliest among member_latest
-                A_rt = min(
-                    member_latest.values(), key=lambda rt: _lin_idx(L, rt[0], rt[1])
+                    latest_measurement_time = max(ts_le)
+                    member_to_lastest_time_measured[product_member] = (
+                        round_number,
+                        latest_measurement_time,
+                    )
+                earliest_member_time = min(
+                    member_to_lastest_time_measured.values(),
+                    key=lambda rt: _lin_idx(L, rt[0], rt[1]),
                 )
-                completions.append(("contract", (r, t_star), member_latest, A_rt))
+                completions.append(
+                    (
+                        "contract",
+                        (round_number, completion_time),
+                        member_to_lastest_time_measured,
+                        earliest_member_time,
+                    )
+                )
         completions.append(("final_mpp", None, {}, None))
 
         if debug:
             try:
                 print(
-                    f"[product-debug] Product {p.label} basis={basis} members={len(members)}"
+                    f"[product-debug] Product {current_product.label} basis={basis} members={len(members)}"
                 )
-                for idx, (kind, B_rt, member_latest, A_rt) in enumerate(completions):
+                for idx, (
+                    kind,
+                    B_rt,
+                    member_to_lastest_time_measured,
+                    earliest_member_time,
+                ) in enumerate(completions):
                     if kind == "contract":
                         print(
-                            f"  - B[{idx}] kind=contract B_rt={B_rt} A_rt={A_rt} c_q={{"
-                            + ", ".join(f"{m}:{rt}" for m, rt in member_latest.items())
+                            f"  - B[{idx}] kind=contract B_rt={B_rt} A_rt={earliest_member_time} c_q={{"
+                            + ", ".join(
+                                f"{m}:{rt}"
+                                for m, rt in member_to_lastest_time_measured.items()
+                            )
                             + "}}"
                         )
                     else:
@@ -185,8 +211,8 @@ def plan_product_detectors(
 
             # (1) First window starts from an init MPP parity snapshot.
             if i == 0:
-                for m in members:
-                    rec0 = log.init_mpp[basis][m]
+                for product_member in members:
+                    rec0 = log.init_mpp[basis][product_member]
                     recs.append(int(rec0))
 
             # (2) For each layer in the window, add same-basis root recs on the
@@ -208,7 +234,7 @@ def plan_product_detectors(
                 if any((q in root_other) for q in S):
                     bad = [q for q in S if q in root_other]
                     raise RuntimeError(
-                        f"Product {p.label} support overlaps opposite-basis roots at r={r_i}, t={t_i}, qubits={bad}"
+                        f"Product {current_product.label} support overlaps opposite-basis roots at r={r_i}, t={t_i}, qubits={bad}"
                     )
                 added = 0
                 for q in S:
@@ -221,8 +247,8 @@ def plan_product_detectors(
 
             # (3) Last window closes with final MPP parity snapshot.
             if kind_b == "final_mpp":
-                for m in members:
-                    recf = log.final_mpp[basis][m]
+                for product_member in members:
+                    recf = log.final_mpp[basis][product_member]
                     recs.append(int(recf))
 
             if not recs:
@@ -231,7 +257,7 @@ def plan_product_detectors(
             info = DetectorInfo(
                 id=next_id,
                 kind="product",
-                label=p.label,
+                label=current_product.label,
                 basis=None,
                 start={
                     "type": kind_a,

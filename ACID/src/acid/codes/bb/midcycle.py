@@ -7,7 +7,6 @@ from acid.codes.bb.algebra import GroupRing, Monomial, Polynomial
 from acid.pauli import StabiliserCode
 
 
-
 @dataclass
 class BBMidCycle:
     ring: GroupRing

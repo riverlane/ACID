@@ -171,10 +171,14 @@ class MemoryExperiment:
                 # Resets
                 if x_roots:
                     stim_builder.RX(sorted(x_roots))
-                    self.noise.apply_after_reset(stim_builder, sorted(x_roots), basis="X")
+                    self.noise.apply_after_reset(
+                        stim_builder, sorted(x_roots), basis="X"
+                    )
                 if z_roots:
                     stim_builder.R(sorted(z_roots))
-                    self.noise.apply_after_reset(stim_builder, sorted(z_roots), basis="Z")
+                    self.noise.apply_after_reset(
+                        stim_builder, sorted(z_roots), basis="Z"
+                    )
                 stim_builder.tick()
                 # Expand
                 steps = Lk.collect_cx_stim()

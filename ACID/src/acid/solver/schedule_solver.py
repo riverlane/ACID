@@ -10,7 +10,7 @@ This module extends the baseline scheduling in solver.py by adding support for
 measuring product stabilisers via sequential measurement of quasi-stabilisers,
 subject to ordering constraints derived from an anti-commutation graph.
 
-Design notes and mapping to the user’s proposal:
+Design notes and mapping to the user's proposal:
 
 - We reuse the stabiliser types and schedule machinery from solver.solver
   (StabiliserTemplate, Stabiliser, StabiliserSchedule, SyndromeExtractionLayer).
@@ -188,6 +188,7 @@ class ScheduleSolver:
 
     # --- Compatibility helpers (copied from legacy Code class) ---
     def make_stabilisers(self, stabilisers) -> dict[str, Stabiliser]:
+        """Builds Stabiliser objects from the provided stabiliser templates and qubit maps."""
         stabiliser_objs: Dict[str, Stabiliser] = {}
         for template, qubits, label in stabilisers:
             stabiliser = template.make_stabiliser(qubits, label)

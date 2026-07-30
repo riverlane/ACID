@@ -191,7 +191,12 @@ class DefectiveCode:
         )
 
         # Also store gauge matrices GX/GZ directly from gauges (includes one-hot drop gauges)
+        # so if there is a dropped qubit, the corresponding one-hot gauge is included in GX/GZ.
+        # and multiply any gauge
         def _xor_supports_labels(members: List[str]) -> List[int]:
+            """XOR the supports of the given quasis by their labels.
+
+            Returns the sorted list of qubit indices in the XORed support."""
             acc: Set[int] = set()
             for lab in members:
                 q = self.label_to_quasi.get(lab)
@@ -203,6 +208,7 @@ class DefectiveCode:
 
         GX_mat: List[List[int]] = []
         GZ_mat: List[List[int]] = []
+        # Constructs gauge matrices GX and GZ from the quasi products in self.gauges.
         for zg, xg in self.gauges:
             if xg is not None:
                 if xg.members:
@@ -213,6 +219,8 @@ class DefectiveCode:
                             if 0 <= q < n_base:
                                 row[q] ^= 1
                         GX_mat.append(row)
+                # Adds one-hot rows for dropped qubits to GX matrix if the quasi product is a
+                # drop gauge.
                 elif xg.label.startswith("QgX_drop_"):
                     q = int(xg.label.split("QgX_drop_")[-1])
                     if 0 <= q < n_base:
@@ -237,6 +245,9 @@ class DefectiveCode:
         # gauge matrices (may be empty if no gauges)
         self.GX: List[List[int]] = GX_mat
         self.GZ: List[List[int]] = GZ_mat
+
+        print(GX_mat)
+        print(GZ_mat)
 
         # Stabiliser triplets (templates/qubit maps) for all quasis
         self.triplets = self._reify_quasi_templates()
@@ -354,6 +365,12 @@ class DefectiveCode:
         return AntiCommutingPauliBasis(name="Lmid", X_rows=Lx, Z_rows=Lz)
 
     def _reify_quasi_templates(self) -> List[Tuple[StabiliserTemplate, List[int], str]]:
+        """Reify a stabiliser template for each quasi stabiliser in self.all_quasis.
+
+        Concatenates the qubit map from the parent stabiliser shape with the
+        relabelled connectivity subgraph of the quasi's support.
+
+        Returns a list of triplets (template, qubit_map, label) for each quasi."""
         tf = TemplateFactory()
         triplets: List[Tuple[StabiliserTemplate, List[int], str]] = []
         for i, q in enumerate(self.all_quasis):
