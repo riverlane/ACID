@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
+from typing import Literal
 
 
 @dataclass(frozen=True)
@@ -60,7 +61,8 @@ class Monomial:
             f"GroupRing({self.ring.l}, {self.ring.m}))"
         )
 
-    def as_LR_tuple(self, left_right: str):
+    def to_coordinate_LR_tuple(self, left_right: Literal["L", "R"]) -> tuple[int, int, int]:
+        """Returns a tuple (a, b, side) where side is 0 for 'L' and 1 for 'R'."""
         if left_right not in ("L", "R"):
             raise ValueError("left_right must be 'L' or 'R'")
         return (self.a, self.b, 0 if left_right == "L" else 1)

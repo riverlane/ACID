@@ -48,6 +48,7 @@ def build_toric_code(
     shapes: list[StabiliserShape] = []
     connections: list[tuple[int, int, str]] = []
 
+    # generates stabiliser shapes and connectivity edges for each monomial (a, b) in the embedding
     for ax in range(l):
         for ay in range(m):
             q = Monomial(ax, ay, ring)
@@ -56,10 +57,10 @@ def build_toric_code(
             #   1: R(b2 q)
             #   2: L(a2 q)
             #   3: R(q)
-            L_q = emb.qubit_id(*q.as_LR_tuple("L"))
-            R_b2q = emb.qubit_id(*((b2 * q).as_LR_tuple("R")))
-            L_a2q = emb.qubit_id(*((a2 * q).as_LR_tuple("L")))
-            R_q = emb.qubit_id(*q.as_LR_tuple("R"))
+            L_q = emb.qubit_coords_to_index(*q.to_coordinate_LR_tuple("L"))
+            R_b2q = emb.qubit_coords_to_index(*((b2 * q).to_coordinate_LR_tuple("R")))
+            L_a2q = emb.qubit_coords_to_index(*((a2 * q).to_coordinate_LR_tuple("L")))
+            R_q = emb.qubit_coords_to_index(*q.to_coordinate_LR_tuple("R"))
             # Order to ensure template path edges are present in device graph
             #   0-1: R(b2 q) — L(q)
             #   1-2: L(q) — R(q)
@@ -74,8 +75,8 @@ def build_toric_code(
             #   1: L(q)
             #   2: R(q)
             #   3: L(b2^-1 q) = L(x q)
-            R_a2invq = emb.qubit_id(*((a2_inv * q).as_LR_tuple("R")))
-            L_b2invq = emb.qubit_id(*((b2_inv * q).as_LR_tuple("L")))
+            R_a2invq = emb.qubit_coords_to_index(*((a2_inv * q).to_coordinate_LR_tuple("R")))
+            L_b2invq = emb.qubit_coords_to_index(*((b2_inv * q).to_coordinate_LR_tuple("L")))
             z_map = [R_a2invq, L_q, R_q, L_b2invq]
             shapes.append(
                 StabiliserShape("Z", path4, sec_length, z_map, f"Z({ax},{ay})")
@@ -88,7 +89,7 @@ def build_toric_code(
             connections.append((lq, R_a2invq, "A2i"))
             if connectivity.lower() in ("grid", "grid4"):
                 # Diagonal: R(a2^-1 b2 q) = R(y x^-1 q)
-                R_a2inv_b2_q = emb.qubit_id(*((a2_inv * b2 * q).as_LR_tuple("R")))
+                R_a2inv_b2_q = emb.qubit_coords_to_index(*((a2_inv * b2 * q).to_coordinate_LR_tuple("R")))
                 connections.append((lq, R_a2inv_b2_q, "A2iB2"))
 
     # Connectivity graph (undirected) ignores classes; edges are added between all pairs in connections

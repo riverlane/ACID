@@ -68,7 +68,7 @@ def build_code_from_spec(
 
     # For sanity: object stabiliser supports for assert checks (as sets of qubit ids)
     obj_stabs = [
-        {embedding.qubit_id(*q) for q in q_s} for s, q_s in bb.stabilizers().items()
+        {embedding.qubit_coords_to_index(*q) for q in q_s} for s, q_s in bb.stabilizers().items()
     ]
 
     H = _h_template()
@@ -82,20 +82,20 @@ def build_code_from_spec(
             even_odd = "O" if bb.even_odd_monomial(q) else "E"
 
             # Base L/R at q
-            l_q = embedding.qubit_id(*q.as_LR_tuple("L"))
-            r_q = embedding.qubit_id(*q.as_LR_tuple("R"))
+            l_q = embedding.qubit_coords_to_index(*q.to_coordinate_LR_tuple("L"))
+            r_q = embedding.qubit_coords_to_index(*q.to_coordinate_LR_tuple("R"))
 
             # Neighbours for X
-            l_a2q = embedding.qubit_id(*(a2 * q).as_LR_tuple("L"))
-            l_a3q = embedding.qubit_id(*(a3 * q).as_LR_tuple("L"))
-            r_b2q = embedding.qubit_id(*(b2 * q).as_LR_tuple("R"))
-            r_b3q = embedding.qubit_id(*(b3 * q).as_LR_tuple("R"))
+            l_a2q = embedding.qubit_coords_to_index(*(a2 * q).to_coordinate_LR_tuple("L"))
+            l_a3q = embedding.qubit_coords_to_index(*(a3 * q).to_coordinate_LR_tuple("L"))
+            r_b2q = embedding.qubit_coords_to_index(*(b2 * q).to_coordinate_LR_tuple("R"))
+            r_b3q = embedding.qubit_coords_to_index(*(b3 * q).to_coordinate_LR_tuple("R"))
 
             # Neighbours for Z
-            r_a2invq = embedding.qubit_id(*(a2.inv() * q).as_LR_tuple("R"))
-            r_a3invq = embedding.qubit_id(*(a3.inv() * q).as_LR_tuple("R"))
-            l_b2invq = embedding.qubit_id(*(b2.inv() * q).as_LR_tuple("L"))
-            l_b3invq = embedding.qubit_id(*(b3.inv() * q).as_LR_tuple("L"))
+            r_a2invq = embedding.qubit_coords_to_index(*(a2.inv() * q).to_coordinate_LR_tuple("R"))
+            r_a3invq = embedding.qubit_coords_to_index(*(a3.inv() * q).to_coordinate_LR_tuple("R"))
+            l_b2invq = embedding.qubit_coords_to_index(*(b2.inv() * q).to_coordinate_LR_tuple("L"))
+            l_b3invq = embedding.qubit_coords_to_index(*(b3.inv() * q).to_coordinate_LR_tuple("L"))
 
             # X stabiliser map (ordering matches H edges to actual device connections)
             x_map = [r_b2q, l_q, r_b3q, l_a2q, r_q, l_a3q]
