@@ -51,7 +51,7 @@ class SquareGridEmbedding(Embedding):
     Attributes:
         ring: The group ring Z_l x Z_m defining the code lattice.
         pitch: Spacing between adjacent cells in the planar layout.
-        num_qubits: Total number of qubits (set automatically to l * m * 2).
+        num_qubits: Total number of qubits (set automatically to l * m * 2).sq
     """
 
     ring: GroupRing
@@ -82,6 +82,26 @@ class SquareGridEmbedding(Embedding):
     def id_and_coords_for(self, g: Monomial, c: int) -> tuple[int, tuple[float, float]]:
         i = self.qubit_coords_to_index(g.a, g.b, c)
         return i, self.coords(g.a, g.b, c)
+
+    def shifted_positions(self, qubits: list[int], da: int, db: int) -> list[int]:
+        """Return qubit indices shifted by (da, db) on the periodic lattice.
+
+        Each qubit's (a, b, c) coordinate is offset by (da, db) modulo the ring
+        dimensions, preserving the left/right label c.
+
+        Args:
+            qubits: List of qubit indices to shift.
+            da: Offset in the first lattice direction (Z_l).
+            db: Offset in the second lattice direction (Z_m).
+
+        Returns:
+            List of shifted qubit indices, in the same order as the input.
+        """
+        result = []
+        for qid in qubits:
+            a, b, c = self.id_to_tuple(qid)
+            result.append(self.qubit_coords_to_index(a + da, b + db, c))
+        return result
 
     @property
     def height(self) -> int:
