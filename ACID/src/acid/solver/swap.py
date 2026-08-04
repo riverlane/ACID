@@ -70,10 +70,8 @@ def solve_swap_routing(
     # Skip if the destination is dead or dont_care (can't place there).
     target: dict[int, int] = {}
     for q, dest in zip(all_qubits, shifted):
-        if dest in dead_positions or dest in root_qubits:
-            continue
+        assert dest not in dead_positions, f"Qubit {q} is shifted to position {dest} which is dead"
         target[dest] = q
-
     # Normalize connections and build adjacency
     edges: list[tuple[int, int]] = []
     dead_norm = {(min(a, b), max(a, b)) for (a, b) in dead_connections}
