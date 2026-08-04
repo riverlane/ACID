@@ -164,6 +164,17 @@ def _solve_for_layers(
     num_layers: int,
     time_limit_s: float,
 ) -> list[list[tuple[int, int]]] | None:
+    """Solve the swap routing problem for a fixed number of layers.
+    
+    Args:
+        N: Total number of positions.
+        edges: List of (i, j) undirected edges in the grid.
+        adj: Adjacency list of edges for each position.
+        target: Mapping from position -> qubit that must end up there.
+        all_dist: Precomputed shortest-path distances between all pairs of positions.
+        num_layers: Number of swap layers to use.
+        time_limit_s: CP-SAT solver time limit in seconds.
+    """
     # qubit -> its required destination (only for non-trivial constraints)
     qubit_to_dest: dict[int, int] = {src: dest for dest, src in target.items() if src != dest}
 
@@ -177,7 +188,6 @@ def _solve_for_layers(
     #       num_layers-t swaps (the corridor/hourglass intersection).
     # For t=0 this collapses to the identity {i}.
     curr_pos: list[list[cp_model.IntVar]] = []
-    start_time = time()
     for t in range(num_layers + 1):
         layer_vars = []
         for i in range(N):
@@ -228,19 +238,22 @@ def _solve_for_layers(
 
         # If no swap touches position i: src[t][i] = i
         for i in range(N):
+            # Edges incident to position i
             incident = [swap[t][e_idx] for (e_idx, _) in adj[i]]
+            # No edges incident - cannot move
             if not incident:
                 model.add(src[t][i] == i)
+            # For each incident edge, if a swap on that edge is not active, then
+            # src[t][i] != neighbor
             else:
-                no_swap = model.new_bool_var(f"no_swap_{t}_{i}")
-                model.add(sum(incident) == 0).only_enforce_if(no_swap)
-                model.add(sum(incident) > 0).only_enforce_if(no_swap.negated())
-                model.add(src[t][i] == i).only_enforce_if(no_swap)
+                for e_idx, nb in adj[i]:
+                    model.add(src[t][i] != nb).only_enforce_if(swap[t][e_idx].negated())
 
         # At most one swap per position per layer
         for i in range(N):
             incident = [swap[t][e_idx] for (e_idx, _) in adj[i]]
             if incident:
+                # At most one of the incident swaps can be active for qubit i
                 model.add_at_most_one(incident)
 
     # Transition: perm[t+1][i] = perm[t][src[t][i]]
