@@ -54,6 +54,9 @@ def solve_swap_routing(
     Returns:
         A list of swap layers (each layer is a list of (i,j) swaps performed),
         or None if no solution found within limits.
+    
+    Raises:
+        ValueError: If a qubit is shifted to a dead position.
     """
     N = embedding.num_qubits
     da, db = offset
@@ -70,7 +73,9 @@ def solve_swap_routing(
     # Skip if the destination is dead or dont_care (can't place there).
     target: dict[int, int] = {}
     for q, dest in zip(all_qubits, shifted):
-        assert dest not in dead_positions, f"Qubit {q} is shifted to position {dest} which is dead"
+        if dest in dead_positions:
+            msg = f"Qubit {q} is shifted to position {dest} which is dead"
+            raise ValueError(msg)
         target[dest] = q
     # Normalize connections and build adjacency
     edges: list[tuple[int, int]] = []
