@@ -51,7 +51,7 @@ class SquareGridEmbedding(Embedding):
     Attributes:
         ring: The group ring Z_l x Z_m defining the code lattice.
         pitch: Spacing between adjacent cells in the planar layout.
-        num_qubits: Total number of qubits (set automatically to l * m * 2).sq
+        num_qubits: Total number of qubits (set automatically to l * m * 2).
     """
 
     ring: GroupRing
