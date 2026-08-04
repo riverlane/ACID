@@ -27,13 +27,13 @@ def solve_swap_routing(
     """Performs the swap routing to shift non-contracted qubits by the given
     lattice offset.
 
-    The swap is performed in one of the 'end'-cycle' state of the code,
-    ie when some gauges have been contracted and others have been
+    The swap is performed in one of the 'end-cycle' state of the code,
+    i.e. when some gauges have been contracted and others have been
     expanded. The qubits that the gauges have been contracted onto are
-    refered to here as root qubits and the qubits that the other gauges have
-    been expanded onto are refered to as data qubits.
+    referred to here as root qubits and the qubits that the other gauges have
+    expanded onto are referred to as data qubits.
 
-    This function computes a sequence of swap layers, ie layers of swaps on
+    This function computes a sequence of swap layers, i.e., layers of swaps on
     that moves the data qubits by the given offset on the periodic lattice,
     without care for where the root qubits end up.
 
@@ -45,7 +45,7 @@ def solve_swap_routing(
         offset: (da, db) shift on the periodic lattice.
         root_qubits: The qubits that the gauges have been contracted onto.
             These qubits are allowed to be moved around and not required
-            to end up in any particular position, providng they don't
+            to end up in any particular position, providing they don't
             conflict with data qubits. If None, no qubits are
             considered root qubits.
         max_layers: Maximum number of swap layers to try.
