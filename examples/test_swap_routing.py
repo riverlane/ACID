@@ -177,7 +177,7 @@ def main() -> None:
     # -----------------------------------------------------------------------
     # Case 6: 10x10 ring, shift (1,0), 2 dead qubits, 3 dead connections,
     #         50 don't-care qubits (every 8th live qubit, starting at qubit 4)
-    #   dead qubits: 0=(0,0,L), 100=(3,5,L)
+    #   dead qubits: 0=(0,0,L), 50=(2,5,L)
     #   dead connections: (2,3)=(0,1,L)-(0,1,R), (4,6)=(0,2,L)-(0,3,L),
     #                     (30,32)=(1,0,L)-(1,1,L)
     # -----------------------------------------------------------------------
