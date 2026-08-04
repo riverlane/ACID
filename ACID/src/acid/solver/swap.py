@@ -70,7 +70,7 @@ def solve_swap_routing(
     all_qubits = sorted(live)
     shifted = embedding.shifted_positions(all_qubits, da, db)
     # target[dest] = q means qubit q must end up at position dest.
-    # Skip if the destination is dead or dont_care (can't place there).
+    # Destination cannot be a dead qubit because dead qubits cannot move so it would be invalid.
     target: dict[int, int] = {}
     for q, dest in zip(all_qubits, shifted):
         if dest in dead_positions:
