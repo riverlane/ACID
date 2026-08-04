@@ -107,8 +107,8 @@ def _compute_target(
     shifted = embedding.shifted_positions(live, da, db)
     target: dict[int, int] = {}
     for q, dest in zip(live, shifted):
-        if dest not in dead_positions and dest not in dont_care:
-            target[dest] = q
+        assert dest not in dead_positions, f"Qubit {q} is shifted to position {dest} which is dead"
+        target[dest] = q
     return target
 
 
@@ -176,21 +176,21 @@ def main() -> None:
 
     # -----------------------------------------------------------------------
     # Case 6: 10x10 ring, shift (1,0), 2 dead qubits, 3 dead connections,
-    #         50 don't-care qubits (every 8th live qubit, starting at qubit 4)
+    #         97 don't-care qubits (every 2nd qubit starting at qubit 4,
+    #          excluding dead)
     #   dead qubits: 0=(0,0,L), 50=(2,5,L)
     #   dead connections: (2,3)=(0,1,L)-(0,1,R), (4,6)=(0,2,L)-(0,3,L),
     #                     (30,32)=(1,0,L)-(1,1,L)
     # -----------------------------------------------------------------------
     dead = {0, 50}
-    dont_care_15 = {q for q in range(4, 200, 2) if q not in dead}
-    dont_care_15 = set(list(dont_care_15))
+    dont_care = {q for q in range(4, 200, 2) if q not in dead}
     run_case(
         label="10x10 ring, shift (1,0), 2 dead qubits, 3 dead connections, 97 dont-care",
         ring=GroupRing(10, 10),
         offset=(1, 0),
         dead_positions=dead,
         dead_connections={(2, 3), (4, 6), (30, 32)},
-        dont_care=dont_care_15,
+        dont_care=dont_care,
         max_layers=10,
         time_limit_s=120.0,
     )
