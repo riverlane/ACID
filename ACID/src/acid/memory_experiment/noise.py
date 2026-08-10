@@ -69,9 +69,7 @@ class DepolarizingNoiseModel(NoiseModel):
     MPP currently left noiseless, but can be extended.
     """
 
-    p1: float = (
-        0.0  # single-qubit flip prob (pre-measure and post-reset; anti-commuting)
-    )
+    p1: float = 0.0  # single-qubit flip prob (pre-measure and post-reset; anti-commuting)
     p2: float = 0.0  # two-qubit depolarizing after CX
 
     def apply_after_gate(

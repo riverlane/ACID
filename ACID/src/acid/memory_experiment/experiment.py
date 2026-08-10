@@ -141,51 +141,7 @@ class MemoryExperiment:
             stim_builder.tick()
 
         # Noisy rounds: R cycles over L layers
-        for r in range(1, self.cfg.R + 1):
-            for t, Lk in enumerate(self.circuit.layers):
-                # Contract
-                for step in Lk.collect_cx_stim():
-                    if step:
-                        pairs = [(int(c), int(tg)) for (c, tg) in step]
-                        stim_builder.CX(pairs)
-                        self.noise.apply_after_gate(stim_builder, "CX", pairs)
-                        stim_builder.tick()
-                # Measure roots
-                x_roots, z_roots = self._root_qubits_by_basis(Lk)
-                if x_roots:
-                    self.noise.apply_before_measure(stim_builder, "X", sorted(x_roots))
-                    xr = sorted(x_roots)
-                    x_recs = stim_builder.MX(xr)
-                    for q, rec in zip(xr, x_recs):
-                        log.record_layer_meas(r, t, "X", int(q), int(rec))
-                if z_roots:
-                    self.noise.apply_before_measure(stim_builder, "Z", sorted(z_roots))
-                    zr = sorted(z_roots)
-                    z_recs = stim_builder.MZ(zr)
-                    for q, rec in zip(zr, z_recs):
-                        log.record_layer_meas(r, t, "Z", int(q), int(rec))
-                # TICK after measurement
-                stim_builder.tick()
-                # Resets
-                if x_roots:
-                    stim_builder.RX(sorted(x_roots))
-                    self.noise.apply_after_reset(
-                        stim_builder, sorted(x_roots), basis="X"
-                    )
-                if z_roots:
-                    stim_builder.R(sorted(z_roots))
-                    self.noise.apply_after_reset(
-                        stim_builder, sorted(z_roots), basis="Z"
-                    )
-                stim_builder.tick()
-                # Expand
-                steps = Lk.collect_cx_stim()
-                for step in reversed(steps):
-                    if step:
-                        pairs = [(int(c), int(tg)) for (c, tg) in step]
-                        stim_builder.CX(pairs)
-                        self.noise.apply_after_gate(stim_builder, "CX", pairs)
-                        stim_builder.tick()
+        stim_builder.memory_rounds(self.cfg.R, circuit=self.circuit, noise=self.noise, log=log)
 
         # Unentangle and final MPP only if doing state prep
         if include_state_prep:
@@ -247,9 +203,7 @@ class MemoryExperiment:
             )
             if debug:
                 try:
-                    print(
-                        f"[detectors] planning: single_quasi={len(quasi_plan.rec_sets)}"
-                    )
+                    print(f"[detectors] planning: single_quasi={len(quasi_plan.rec_sets)}")
                     print(f"[detectors] planning: product={len(prod_plan.rec_sets)}")
                 except Exception:
                     pass

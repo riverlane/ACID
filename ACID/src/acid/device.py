@@ -30,9 +30,7 @@ class DeviceVisualisation:
     embedding: Embedding  # provides qubit_id, coords, id_to_tuple
     qubit_colouring: dict[int, str]  # qubit_id -> colour
     connections: list[tuple[int, int, str]]  # qubit_1, qubit_2, connection_class
-    defective_qubits: set[
-        int
-    ]  # qubit_ids. mark these qubits as defective in the .stim file
+    defective_qubits: set[int]  # qubit_ids. mark these qubits as defective in the .stim file
     defective_connections: set[
         tuple[int, int, str]
     ]  # (qubit_1, qubit_2, connection_class). mark as defective in the .stim file
@@ -43,9 +41,7 @@ class DeviceVisualisation:
     polygons_products: list[tuple[str, Iterable[int]]] | None = None
     polygons_gauge: list[tuple[str, Iterable[int]]] | None = None
 
-    def stim_with_overlays(
-        self, include_reset: bool = True, *, debug: bool = False
-    ) -> str:
+    def stim_with_overlays(self, include_reset: bool = True, *, debug: bool = False) -> str:
         lines: list[str] = []
         # Dynamic legend/comment header
         lines.append("# Legend")
@@ -66,9 +62,7 @@ class DeviceVisualisation:
             ("GAUGEZ", []),
         ]
 
-        def assign_items(
-            items: list[tuple[str, Iterable[int]]], x_name: str, z_name: str
-        ):
+        def assign_items(items: list[tuple[str, Iterable[int]]], x_name: str, z_name: str):
             if not items:
                 return
             for ptype, verts in items:
@@ -115,9 +109,7 @@ class DeviceVisualisation:
             q_tuple = self.embedding.id_to_tuple(qid)
             coords = self.embedding.coords(*q_tuple)
             c = q_tuple[2] if len(q_tuple) > 2 else 0
-            q_colour = self.qubit_colouring.get(
-                qid, "gold" if c == 0 else "mediumseagreen"
-            )
+            q_colour = self.qubit_colouring.get(qid, "gold" if c == 0 else "mediumseagreen")
             attrs = [
                 f"Q={qid}",
                 "SHEET=QUBITS",
@@ -150,11 +142,7 @@ class DeviceVisualisation:
                 # For defective connections, simply force colour red without extra flags.
                 local_colour = "red" if defective else colour
                 # Add explicit thickness for edges (Shatter directive)
-                base = (
-                    f"##! CONN SET SHEET={sheet} EDGES=("
-                    + ",".join(edges)
-                    + ") THICKNESS=2"
-                )
+                base = f"##! CONN SET SHEET={sheet} EDGES=(" + ",".join(edges) + ") THICKNESS=2"
                 if local_colour:
                     base += f" COLOUR={local_colour}"
                 lines.append(base)
@@ -183,14 +171,12 @@ class DeviceVisualisation:
                 if "X" in nm:
                     lines.append(f"##! POLY SHEET={nm}")
                     lines.append(
-                        "#!pragma POLYGON(1,0,0,0.15)  "
-                        + " ".join(str(q) for q in ordered)
+                        "#!pragma POLYGON(1,0,0,0.15)  " + " ".join(str(q) for q in ordered)
                     )
                 else:
                     lines.append(f"##! POLY SHEET={nm}")
                     lines.append(
-                        "#!pragma POLYGON(0,0,1,0.15)  "
-                        + " ".join(str(q) for q in ordered)
+                        "#!pragma POLYGON(0,0,1,0.15)  " + " ".join(str(q) for q in ordered)
                     )
 
         # Append the tick/reset after overlays, if requested
@@ -227,7 +213,5 @@ class DeviceVisualisation:
             return math.atan2(p[2] - cy, p[1] - cx)
 
         # Sort by angle descending for clockwise order; tie-break by radius
-        ordered = sorted(
-            pts, key=lambda p: (-angle(p), (p[1] - cx) ** 2 + (p[2] - cy) ** 2)
-        )
+        ordered = sorted(pts, key=lambda p: (-angle(p), (p[1] - cx) ** 2 + (p[2] - cy) ** 2))
         return [p[0] for p in ordered]

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from pathlib import Path
-from typing import cast, Sequence
+from typing import cast
 
 import networkx as nx
 import numpy as np

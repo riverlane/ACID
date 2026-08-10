@@ -83,8 +83,7 @@ class SyndromeExtractionCircuit:
         for t, Lk in enumerate(self.layers):
             chosen_ids = {stab.label: int(shed.id) for stab, shed in Lk.chosen.items()}
             full_map = {
-                lab: (chosen_ids.get(lab) if lab in chosen_ids else None)
-                for lab in all_labels
+                lab: (chosen_ids.get(lab) if lab in chosen_ids else None) for lab in all_labels
             }
             measured_labels = sorted(chosen_ids.keys())
             per_t = (
@@ -168,9 +167,7 @@ class SyndromeExtractionCircuit:
         valid_labels = sorted(set_in & set_dc) if not strict else labels_in
 
         # Build stabilisers map by label without solving
-        triplets: list[tuple[StabiliserTemplate, list[int], str]] = getattr(
-            dcode, "triplets", []
-        )  # type: ignore[attr-defined]
+        triplets: list[tuple[StabiliserTemplate, list[int], str]] = getattr(dcode, "triplets", [])  # type: ignore[attr-defined]
         stab_by_label: dict[str, Stabiliser] = {}
         for tmpl, qmap, lab in triplets:
             stab_by_label[lab] = tmpl.make_stabiliser(qmap, lab)
@@ -193,9 +190,7 @@ class SyndromeExtractionCircuit:
                     self.stabilisers = stab_map
                     self.num_qubits = int(n)
 
-            code_for_layer = _StubCode(
-                stab_by_label, getattr(dcode.base_code, "num_qubits", 0)
-            )  # type: ignore[attr-defined]
+            code_for_layer = _StubCode(stab_by_label, getattr(dcode.base_code, "num_qubits", 0))  # type: ignore[attr-defined]
 
         layers_out: list[SyndromeExtractionLayer] = []
         for ent in layers_in:
@@ -217,9 +212,7 @@ class SyndromeExtractionCircuit:
                 chosen[stab] = sheds[sid_int]
             Lk = SyndromeExtractionLayer(chosen=chosen, code=code_for_layer)
             if verify and hasattr(code_for_layer, "scheduling_graph"):
-                if not Lk.is_compatible_with_scheduling_graph(
-                    code_for_layer.scheduling_graph
-                ):  # type: ignore[attr-defined]
+                if not Lk.is_compatible_with_scheduling_graph(code_for_layer.scheduling_graph):  # type: ignore[attr-defined]
                     raise ValueError(
                         "Layer not compatible with scheduling graph (verification failed)"
                     )
@@ -227,9 +220,7 @@ class SyndromeExtractionCircuit:
 
         if len(layers_out) != L_val:
             # Not fatal, but warn via exception to enforce consistency
-            raise ValueError(
-                f"Snapshot L={L_val} but constructed {len(layers_out)} layers"
-            )
+            raise ValueError(f"Snapshot L={L_val} but constructed {len(layers_out)} layers")
 
         return SyndromeExtractionCircuit(
             layers=layers_out,
@@ -250,9 +241,7 @@ class SyndromeExtractionCircuit:
     ) -> SyndromeExtractionCircuit:
         with open(path, "r") as f:
             snapshot = json.load(f)
-        return cls.from_layers_dict(
-            snapshot, dcode, verify=verify, strict=strict, backend=backend
-        )
+        return cls.from_layers_dict(snapshot, dcode, verify=verify, strict=strict, backend=backend)
 
     def commuting_bases(self) -> list[CommutingPauliBasis]:
         bases: list[CommutingPauliBasis] = []
@@ -281,12 +270,8 @@ class SyndromeExtractionCircuit:
         Lx_mid, Lz_mid = self.dcode._logical_pairs_mid_paulis()
         Gx_mid, Gz_mid = self.dcode._gauge_pairs_mid_paulis()
 
-        bases["Lmid"] = AntiCommutingPauliBasis(
-            name="Lmid", X_rows=Lx_mid, Z_rows=Lz_mid
-        )
-        bases["Gmid"] = AntiCommutingPauliBasis(
-            name="Gmid", X_rows=Gx_mid, Z_rows=Gz_mid
-        )
+        bases["Lmid"] = AntiCommutingPauliBasis(name="Lmid", X_rows=Lx_mid, Z_rows=Lz_mid)
+        bases["Gmid"] = AntiCommutingPauliBasis(name="Gmid", X_rows=Gx_mid, Z_rows=Gz_mid)
         # Per-layer propagated logicals
         for idx, Lk in enumerate(self.layers):
             Xp: list[PauliString] = []
@@ -295,9 +280,7 @@ class SyndromeExtractionCircuit:
                 Xp.append(Lk.propagate(p))
             for p in Lz_mid:
                 Zp.append(Lk.propagate(p))
-            bases[f"L{idx}"] = AntiCommutingPauliBasis(
-                name=f"L{idx}", X_rows=Xp, Z_rows=Zp
-            )
+            bases[f"L{idx}"] = AntiCommutingPauliBasis(name=f"L{idx}", X_rows=Xp, Z_rows=Zp)
 
         # Per-layer gauges (if any)
         # for idx, Lk in enumerate(self.layers):

@@ -57,43 +57,29 @@ def run(
     explicit_qubits = parse_qubits(drop_qubits)
     explicit_couplers = parse_couplers(drop_couplers)
     if explicit_qubits and n_dropped_qubits:
-        raise SystemExit(
-            "Specify either --n-dropped-qubits or --drop-qubits, not both."
-        )
+        raise SystemExit("Specify either --n-dropped-qubits or --drop-qubits, not both.")
     if explicit_couplers and n_dropped_couplers:
-        raise SystemExit(
-            "Specify either --n-dropped-couplers or --drop-couplers, not both."
-        )
+        raise SystemExit("Specify either --n-dropped-couplers or --drop-couplers, not both.")
     if explicit_qubits:
         for q in explicit_qubits:
             if q not in all_qubits:
-                raise SystemExit(
-                    f"Dropped qubit {q} out of range [0..{base.num_qubits - 1}]"
-                )
+                raise SystemExit(f"Dropped qubit {q} out of range [0..{base.num_qubits - 1}]")
         dropped_nodes: list[int] = explicit_qubits
     else:
         nQ = max(0, int(n_dropped_qubits))
-        dropped_nodes = (
-            random.sample(all_qubits, min(nQ, len(all_qubits))) if nQ > 0 else []
-        )
+        dropped_nodes = random.sample(all_qubits, min(nQ, len(all_qubits))) if nQ > 0 else []
     if explicit_couplers:
         valid = set(uniq_edges)
         for e in explicit_couplers:
             if e not in valid:
-                raise SystemExit(
-                    f"Dropped coupler {e[0]}-{e[1]} not in device connectivity"
-                )
+                raise SystemExit(f"Dropped coupler {e[0]}-{e[1]} not in device connectivity")
         dropped_edges: list[tuple[int, int]] = explicit_couplers
     else:
         nE = max(0, int(n_dropped_couplers))
-        dropped_edges = (
-            random.sample(uniq_edges, min(nE, len(uniq_edges))) if nE > 0 else []
-        )
+        dropped_edges = random.sample(uniq_edges, min(nE, len(uniq_edges))) if nE > 0 else []
     print(f"Dropouts: nodes={dropped_nodes} edges={dropped_edges}")
 
-    dcode = DefectiveCode(
-        base, dropped_nodes=dropped_nodes, dropped_edges=dropped_edges
-    )
+    dcode = DefectiveCode(base, dropped_nodes=dropped_nodes, dropped_edges=dropped_edges)
     print("Stats:")
     for k in sorted(dcode.stats().keys()):
         print(f"  {k}: {dcode.stats()[k]}")
@@ -144,9 +130,7 @@ def run(
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(
-        description="BB bb288 (deg5): compile and emit memory experiment"
-    )
+    ap = argparse.ArgumentParser(description="BB bb288 (deg5): compile and emit memory experiment")
     ap.add_argument("--solve-time", type=float, default=60.0)
     ap.add_argument("--rounds", type=int, default=1)
     ap.add_argument("--out", type=str)

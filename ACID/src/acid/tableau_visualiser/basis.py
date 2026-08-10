@@ -18,9 +18,7 @@ class PauliBasis:
     def validate(self, n: int) -> None:
         for r in self.rows:
             if len(r) != 2 * n:
-                raise ValueError(
-                    f"Basis {self.name} has row with wrong length (expected {2 * n})"
-                )
+                raise ValueError(f"Basis {self.name} has row with wrong length (expected {2 * n})")
         # Check linear independence (not strictly required, but recommended)
         if gf2_rank(self.rows) != len(self.rows):
             raise ValueError(f"Basis {self.name} rows are not linearly independent")
@@ -71,6 +69,4 @@ def default_single_qubit_basis(n: int) -> PauliBasis:
         Z = [0] * n
         X[i] = 1
         rows.append(X + Z)
-    return PauliBasis(
-        name="Single Qubit Paulis", kind="stabiliser", priority=0, rows=rows
-    )
+    return PauliBasis(name="Single Qubit Paulis", kind="stabiliser", priority=0, rows=rows)

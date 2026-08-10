@@ -31,9 +31,7 @@ def in_bounds_square(d: int, x: int, y: int) -> bool:
     return (lhs1 <= rhs1) and (lhs1 <= rhs2) and (y >= 0)
 
 
-def _add_cartesian_connectivity(
-    G: nx.Graph, coords: dict[tuple[int, int], int], d: int
-) -> None:
+def _add_cartesian_connectivity(G: nx.Graph, coords: dict[tuple[int, int], int], d: int) -> None:
     # Four-neighbour connectivity (N,S,E,W) within bounds
     for (x, y), q in coords.items():
         for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
@@ -118,9 +116,7 @@ def build_colour_square_code(d: int) -> tuple[BaseCode, dict[tuple[int, int], in
                 # schedule_hint = [[], [] , [] , [(1,0)]]  # (1,0) means CNOT controlled on 0 targeting 1
                 # layer_hint 1 for X, layer_hint 0 for Z
                 # Inner stabs: preferred roots as before, plus a preferred edge (L-R) at timestep 3
-                pref_edges_inner: dict[tuple[int, int], list[int] | None] = {
-                    (0, 1): [3]
-                }
+                pref_edges_inner: dict[tuple[int, int], list[int] | None] = {(0, 1): [3]}
                 shapes.append(
                     StabiliserShape(
                         "X",
@@ -214,9 +210,7 @@ def build_colour_square_code(d: int) -> tuple[BaseCode, dict[tuple[int, int], in
                 # DL-L: t=0; DR-R: t=0; LL-L: t=1; RR-R: t=1; UL-L: t=2; UR-R: t=2; L-R: t=3
                 preferred_edges: dict[tuple[int, int], list[int] | None] = {}
 
-                def add_pref(
-                    a_xy: tuple[int, int], b_xy: tuple[int, int], t: int
-                ) -> None:
+                def add_pref(a_xy: tuple[int, int], b_xy: tuple[int, int], t: int) -> None:
                     if hasq(*a_xy) and hasq(*b_xy):
                         a = coord_to_local[a_xy]
                         b = coord_to_local[b_xy]

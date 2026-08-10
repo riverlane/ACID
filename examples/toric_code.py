@@ -14,8 +14,6 @@ from acid.memory_experiment.rec_log import MeasurementLog
 from acid.solver.swap import solve_swap_routing, verify_swap_routing
 from acid.stim_to_shatter_url import prompt_open_shatter
 
-from acid.codes.bb import builder_deg5 as deg5
-from acid.codes.bb.builder_hexconn import get_spec
 
 def run(
     distance: int = 3,

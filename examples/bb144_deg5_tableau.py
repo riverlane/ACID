@@ -47,18 +47,14 @@ def main() -> int:
     ap = argparse.ArgumentParser(
         description="bb 144 (deg5) tableau: print first ticks of compiled schedule"
     )
-    ap.add_argument(
-        "--layers", type=int, default=5, help="Schedule layers L (default: 5)"
-    )
+    ap.add_argument("--layers", type=int, default=5, help="Schedule layers L (default: 5)")
     ap.add_argument(
         "--solve-time",
         type=float,
         default=60.0,
         help="Solver time limit in seconds (default: 60)",
     )
-    ap.add_argument(
-        "--ticks", type=int, default=30, help="Number of TICKs to print (default: 30)"
-    )
+    ap.add_argument("--ticks", type=int, default=30, help="Number of TICKs to print (default: 30)")
     args = ap.parse_args()
     run(layers=args.layers, solve_time=args.solve_time, ticks=args.ticks)
     return 0

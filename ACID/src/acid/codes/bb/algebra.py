@@ -56,10 +56,7 @@ class Monomial:
         return self.as_string()
 
     def __repr__(self) -> str:
-        return (
-            f'Monomial.from_str("{self.as_string()}", '
-            f"GroupRing({self.ring.l}, {self.ring.m}))"
-        )
+        return f'Monomial.from_str("{self.as_string()}", GroupRing({self.ring.l}, {self.ring.m}))'
 
     def to_coordinate_LR_tuple(self, left_right: Literal["L", "R"]) -> tuple[int, int, int]:
         """Returns a tuple (a, b, side) where side is 0 for 'L' and 1 for 'R'."""
@@ -81,9 +78,7 @@ class Polynomial:
                 raise ValueError("Term ring mismatch")
             key = (t.a, t.b)
             seen[key] = 1 ^ seen.get(key, 0)
-        canonical = frozenset(
-            Monomial(a, b, self.ring) for (a, b), v in seen.items() if v
-        )
+        canonical = frozenset(Monomial(a, b, self.ring) for (a, b), v in seen.items() if v)
         object.__setattr__(self, "terms", canonical)
 
     @staticmethod
@@ -143,17 +138,14 @@ class Polynomial:
         if mono.ring != self.ring:
             raise ValueError("Mismatched group rings")
         return Polynomial(
-            frozenset(
-                Monomial(mono.a + t.a, mono.b + t.b, self.ring) for t in self.terms
-            ),
+            frozenset(Monomial(mono.a + t.a, mono.b + t.b, self.ring) for t in self.terms),
             self.ring,
         )
 
     def inverse(self) -> Polynomial:
         return Polynomial(
             frozenset(
-                Monomial((-t.a) % self.ring.l, (-t.b) % self.ring.m, self.ring)
-                for t in self.terms
+                Monomial((-t.a) % self.ring.l, (-t.b) % self.ring.m, self.ring) for t in self.terms
             ),
             self.ring,
         )
@@ -162,9 +154,7 @@ class Polynomial:
         if not self.terms:
             return "0"
         # Deterministic order: by a then b
-        parts = [
-            f"x^{t.a}y^{t.b}" for t in sorted(self.terms, key=lambda t: (t.a, t.b))
-        ]
+        parts = [f"x^{t.a}y^{t.b}" for t in sorted(self.terms, key=lambda t: (t.a, t.b))]
         return "+".join(parts)
 
     def __str__(self) -> str:
@@ -172,6 +162,5 @@ class Polynomial:
 
     def __repr__(self) -> str:
         return (
-            f'Polynomial.from_string("{self.as_string()}", '
-            f"GroupRing({self.ring.l}, {self.ring.m}))"
+            f'Polynomial.from_string("{self.as_string()}", GroupRing({self.ring.l}, {self.ring.m}))'
         )

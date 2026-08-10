@@ -148,9 +148,7 @@ def build_code_from_spec(
         )
 
     # build the BB code and its embedding
-    bb = BBMidCycle(
-        ring, A, B, homomorphism_f_x=int(use_fx), homomorphism_f_y=int(use_fy)
-    )
+    bb = BBMidCycle(ring, A, B, homomorphism_f_x=int(use_fx), homomorphism_f_y=int(use_fy))
     embedding = SquareGridEmbedding(ring=bb.ring, pitch=1.0)
 
     # cyclical graph of length 6 - ie a hexagon shaped graph
@@ -200,8 +198,12 @@ def build_code_from_spec(
             # z stabiliser shape for this monomial (a, b) in the embedding
             shapes.append(StabiliserShape("Z", hex_graph, SEC_length, z_map, label))
 
-            r_a2invb2q = embedding.qubit_coords_to_index(*(a2.inv() * b2 * q).to_coordinate_LR_tuple("R"))
-            r_a3invb3q = embedding.qubit_coords_to_index(*(a3.inv() * b3 * q).to_coordinate_LR_tuple("R"))
+            r_a2invb2q = embedding.qubit_coords_to_index(
+                *(a2.inv() * b2 * q).to_coordinate_LR_tuple("R")
+            )
+            r_a3invb3q = embedding.qubit_coords_to_index(
+                *(a3.inv() * b3 * q).to_coordinate_LR_tuple("R")
+            )
 
             connections.extend(
                 [
@@ -232,9 +234,7 @@ def get_spec(key: str) -> CodeSpec:
     key_l = key.lower()
     cfg = CODE_TABLE.get(key_l)
     if cfg is None:
-        raise ValueError(
-            f"Unknown code key: {key}. Known keys: {', '.join(known_code_keys())}"
-        )
+        raise ValueError(f"Unknown code key: {key}. Known keys: {', '.join(known_code_keys())}")
     return CodeSpec(
         key=key_l,
         l=int(cfg["l"]),

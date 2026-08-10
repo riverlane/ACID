@@ -7,13 +7,11 @@ parallel swap layers that moves a subset of qubits to target positions.
 from __future__ import annotations
 
 from time import time
-from typing import cast
 
+import networkx as nx
 from ortools.sat.python import cp_model
 
 from acid.embedding import SquareGridEmbedding
-
-import networkx as nx
 
 
 def solve_swap_routing(

@@ -38,9 +38,7 @@ def pauli_string_to_row(p: stim.PauliString) -> list[int]:
 class TableauSnapshot:
     tick_index: int
     n: int
-    stabiliser_sections: list[
-        tuple[CommutingPauliBasis | AntiCommutingPauliBasis, list[int]]
-    ]
+    stabiliser_sections: list[tuple[CommutingPauliBasis | AntiCommutingPauliBasis, list[int]]]
     logical_descriptions: list[str]
 
     def to_ansi(self) -> str:
@@ -134,9 +132,7 @@ class TableauVisualiser:
         chosen_basis_rows: list[list[int]] = []
 
         # Commuting bases membership
-        sections: list[
-            tuple[CommutingPauliBasis | AntiCommutingPauliBasis, list[int]]
-        ] = []
+        sections: list[tuple[CommutingPauliBasis | AntiCommutingPauliBasis, list[int]]] = []
         for b in self.commuting_bases[::-1]:
             idxs: list[int] = []
             for j, p in enumerate(b.rows):

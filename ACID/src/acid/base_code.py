@@ -41,9 +41,7 @@ class StabiliserShape:
     schedule_hint: list[list[tuple[int, int]]] | None = (
         None  # pre-defined schedule used as a hint only
     )
-    layer_hint: int | None = (
-        None  # layer index at which to hint this stabiliser schedule
-    )
+    layer_hint: int | None = None  # layer index at which to hint this stabiliser schedule
     # Accepted but unused; maintained for builder compatibility
     redundant_edges: set[tuple[int, int]] | None = None
 
