@@ -230,11 +230,13 @@ def run(
     # Swap layers
     sb.swap_routing_layers(swap_layers, noise=noise)
 
+    sb.set_offset(new_pos)  # remap qubit IDs to their shifted positions
+
     # Reset roots at their shifted positions, then expand at shifted positions
-    sb.layer_reset(best_layer, noise=noise, qubit_map=new_pos)
+    sb.layer_reset(best_layer, noise=noise)
 
     # Second half: expand with qubit IDs remapped to shifted positions
-    sb.layer_expand(best_layer, noise=noise, qubit_map=new_pos)
+    sb.layer_expand(best_layer, noise=noise)
 
     stim_text = "\n".join(sb.lines) + "\n"
 
