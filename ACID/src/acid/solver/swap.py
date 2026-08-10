@@ -57,7 +57,7 @@ def solve_swap_routing(
     Returns:
         A list of swap layers (each layer is a list of (i,j) swaps performed),
         or None if no solution found within limits.
-    
+
     Raises:
         ValueError: If a qubit is shifted to a dead position.
     """
@@ -105,7 +105,7 @@ def solve_swap_routing(
         d: dict[int, int] = {}
         if i in all_dist_dict:
             for j, dist_val in all_dist_dict[i].items():
-                if dist_val != float('inf'):
+                if dist_val != float("inf"):
                     d[j] = int(dist_val)
         all_dist.append(d)
 
@@ -115,8 +115,10 @@ def solve_swap_routing(
         default=1,
     )
 
-    print(f"Swap routing: {len(all_qubits)} qubits, {len(edges)} edges, {len(target)} "
-          f"constraints, lower bound {lo} layers, max {max_layers} layers")
+    print(
+        f"Swap routing: {len(all_qubits)} qubits, {len(edges)} edges, {len(target)} "
+        f"constraints, lower bound {lo} layers, max {max_layers} layers"
+    )
     # Linear search over number of layers, starting from lower bound.  Stop at first feasible solution.
     for num_layers in range(lo, max_layers + 1):
         result, status = _solve_for_layers(
@@ -130,11 +132,13 @@ def solve_swap_routing(
         if result is not None:
             return result
         elif status == cp_model.UNKNOWN:
-            print(f"CP-SAT solver returned UNKNOWN for {num_layers} layers. This means "
-                  f"the solver hit the time limit without proving infeasibility."
-                  "No further layers will be attempted as higher number of layers will "
-                  "almost certainly be unknown. Please increase the time limit or reduce the "
-                  "number of layers.")
+            print(
+                f"CP-SAT solver returned UNKNOWN for {num_layers} layers. This means "
+                f"the solver hit the time limit without proving infeasibility."
+                "No further layers will be attempted as higher number of layers will "
+                "almost certainly be unknown. Please increase the time limit or reduce the "
+                "number of layers."
+            )
             break
         print(f"No solution found with {num_layers} layers, trying {num_layers + 1} layers...")
     return None
@@ -205,13 +209,17 @@ def _create_position_variables(
                     if distance_to_qubit > layer_index:
                         continue
                     dest = qubit_to_dest.get(qubit_candidate)
-                    if dest is not None and all_dist[pos_index].get(dest, N) > num_layers - layer_index:
+                    if (
+                        dest is not None
+                        and all_dist[pos_index].get(dest, N) > num_layers - layer_index
+                    ):
                         continue
                     valid_qubit_candidates.append(qubit_candidate)
                 if not valid_qubit_candidates:
                     return None
                 current_pos_var = model.new_int_var_from_domain(
-                    cp_model.Domain.from_values(valid_qubit_candidates), f"perm_{layer_index}_{pos_index}"
+                    cp_model.Domain.from_values(valid_qubit_candidates),
+                    f"perm_{layer_index}_{pos_index}",
                 )
             layer_vars.append(current_pos_var)
         curr_pos.append(layer_vars)
@@ -303,9 +311,9 @@ def _solve_for_layers(
     time_limit_s: float,
     *,
     optimize: bool = True,
-    ) -> tuple[list[list[tuple[int, int]]] | None, cp_model.CpSolverStatus]:
+) -> tuple[list[list[tuple[int, int]]] | None, cp_model.CpSolverStatus]:
     """Solve the swap routing problem for a fixed number of layers.
-    
+
     Args:
         N: Total number of positions.
         edges: List of (i, j) undirected edges in the grid.
@@ -342,7 +350,11 @@ def _solve_for_layers(
     # Transition: perm[t+1][i] = perm[t][src[t][i]]
     for layer_index in range(num_layers):
         for pos_index in range(N):
-            model.add_element(src[layer_index][pos_index], curr_pos[layer_index], curr_pos[layer_index + 1][pos_index])
+            model.add_element(
+                src[layer_index][pos_index],
+                curr_pos[layer_index],
+                curr_pos[layer_index + 1][pos_index],
+            )
 
     # AllDifferent per layer for faster propagation
     for layer_index in range(num_layers + 1):
@@ -358,9 +370,7 @@ def _solve_for_layers(
 
     # Decision strategy: branch on swap variables first
     all_swaps = [swap[t][e] for t in range(num_layers) for e in range(len(edges))]
-    model.add_decision_strategy(
-        all_swaps, cp_model.CHOOSE_FIRST, cp_model.SELECT_MAX_VALUE
-    )
+    model.add_decision_strategy(all_swaps, cp_model.CHOOSE_FIRST, cp_model.SELECT_MIN_VALUE)
 
     if optimize:
         total_swaps = sum(all_swaps)
@@ -369,10 +379,11 @@ def _solve_for_layers(
     # Solve
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = time_limit_s
-    # solver.parameters.num_workers = 8
-    # solver.parameters.linearization_level = 0
+    solver.parameters.num_workers = 8
+    solver.parameters.linearization_level = 0
+    start_time = time()
     status = solver.solve(model)
-
+    print(f"CP-SAT solver finished in {time() - start_time:.2f}s with status {status}")
     if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         result: list[list[tuple[int, int]]] = []
         for layer_index in range(num_layers):

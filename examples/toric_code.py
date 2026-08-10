@@ -64,10 +64,12 @@ def run(
     explicit_qubits = parse_qubits(drop_qubits)
     explicit_couplers = parse_couplers(drop_couplers)
     if swap_offset_str is None:
-        swap_offset = (0,0)
+        swap_offset = (0, 0)
     else:
         swap_offset_parts = swap_offset_str.split(",")
-        if len(swap_offset_parts) != 2 or not all(re.fullmatch(r"-?\d+", p) for p in swap_offset_parts):
+        if len(swap_offset_parts) != 2 or not all(
+            re.fullmatch(r"-?\d+", p) for p in swap_offset_parts
+        ):
             raise SystemExit(
                 f"Invalid --swap-offset '{swap_offset_str}'. Must be two integers separated by a comma."
             )
