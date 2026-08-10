@@ -294,3 +294,25 @@ def gf2_rank_normal_numpy(
         R_inv[targets] ^= R_inv[rank_so_far]
         R[:, rank_so_far] ^= np.sum(R[:, targets], axis=1) % 2
         rank_so_far += 1
+
+
+def gf2_get_generator_coefficients(
+    G: list[list[int]], v: list[list[int]]
+) -> list[list[int]] | None:
+    if not G:
+        return None if any(any(row) for row in v) else []
+    m = len(G)
+    n = len(G[0])
+    if any(len(row) != n for row in v):
+        raise ValueError("Dimension mismatch in gf2_get_generator_coefficients")
+    # Augment [G | I_m; v | 0] so row ops on G are tracked in the identity block
+    augmented = [G[i][:] + [1 if j == i else 0 for j in range(m)] for i in range(m)]
+    augmented += [row[:] + [0] * m for row in v]
+    rref, _ = gf2_rref_rowwise(augmented)
+    coefficients = []
+    for i in range(len(v)):
+        row = rref[m + i]
+        if any(row[j] for j in range(n)):  # non-zero in data block → not in span
+            return None
+        coefficients.append(row[n:])  # coefficient block
+    return coefficients
