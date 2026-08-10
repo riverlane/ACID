@@ -370,7 +370,6 @@ def _solve_for_layers(
 
     # Decision strategy: branch on swap variables first
     all_swaps = [swap[t][e] for t in range(num_layers) for e in range(len(edges))]
-    model.add_decision_strategy(all_swaps, cp_model.CHOOSE_FIRST, cp_model.SELECT_MIN_VALUE)
 
     if optimize:
         total_swaps = sum(all_swaps)
@@ -379,8 +378,12 @@ def _solve_for_layers(
     # Solve
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = time_limit_s
+
+    # TODO: add parameters to control number of threads, linearization level, etc.
     solver.parameters.num_workers = 8
     solver.parameters.linearization_level = 0
+    model.add_decision_strategy(all_swaps, cp_model.CHOOSE_FIRST, cp_model.SELECT_MIN_VALUE)
+
     start_time = time()
     status = solver.solve(model)
     print(f"CP-SAT solver finished in {time() - start_time:.2f}s with status {status}")
