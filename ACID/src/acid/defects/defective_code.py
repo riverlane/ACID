@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from pathlib import Path
-from typing import cast
+from typing import cast, Sequence
 
 import networkx as nx
 import numpy as np
@@ -117,16 +117,14 @@ class DefectiveCode:
     def __init__(
         self,
         code: BaseCode,
-        dropped_nodes: list[int] | set[int] | tuple[int, ...] = (),
-        dropped_edges: list[tuple[int, int]] | tuple[tuple[int, int], ...] = (),
+        dropped_nodes: Iterable[int] = (),
+        dropped_edges: Iterable[tuple[int, int]] = (),
         *,
         verify: bool = True,
     ) -> None:
         self.base_code = code
         self.dropped_nodes: set[int] = {int(q) for q in dropped_nodes}
-        self.dropped_edges: list[tuple[int, int]] = [
-            (int(u), int(v)) for (u, v) in dropped_edges
-        ]
+        self.dropped_edges: list[tuple[int, int]] = [(int(u), int(v)) for (u, v) in dropped_edges]
         self.num_qubits = self.base_code.num_qubits - len(self.dropped_nodes)
         self.solver = None  # type: ScheduleSolver | None
 
@@ -136,9 +134,7 @@ class DefectiveCode:
         # Build a connectivity graph that excludes dropped edges entirely
         self.connectivity_graph = nx.Graph()
         self.connectivity_graph.add_nodes_from(self.base_code.connectivity_graph.nodes)
-        dropped_norm = {
-            (min(int(u), int(v)), max(int(u), int(v))) for (u, v) in self.dropped_edges
-        }
+        dropped_norm = {(min(int(u), int(v)), max(int(u), int(v))) for (u, v) in self.dropped_edges}
         for u, v, data in self.base_code.connectivity_graph.edges(data=True):
             a, b = (int(u), int(v)) if int(u) <= int(v) else (int(v), int(u))
             if (a, b) in dropped_norm:
@@ -165,13 +161,9 @@ class DefectiveCode:
         self.anticomm_graph = build_anticommutation_graph(self.all_quasis)
         self.nontrivial_idx: set[str] = set(self.anticomm_graph.nodes())
         # Convenience maps
-        self.label_to_quasi: dict[str, QuasiStabiliser] = {
-            q.label: q for q in self.all_quasis
-        }
+        self.label_to_quasi: dict[str, QuasiStabiliser] = {q.label: q for q in self.all_quasis}
         # Also create one-hot quasis for dropped qubits (kept separate from anticomm graph)
-        self.dropped_qubit_quasis: dict[str, QuasiStabiliser] = (
-            self._build_dropped_quasis()
-        )
+        self.dropped_qubit_quasis: dict[str, QuasiStabiliser] = self._build_dropped_quasis()
         self.label_to_quasi.update(self.dropped_qubit_quasis)
 
         # Step 3: Derive product stabilisers and gauge operators from the
@@ -185,9 +177,7 @@ class DefectiveCode:
         # stabiliser matrices
         self.HX: list[list[int]] = self._rows_to_matrix(_hx_supp, n_base)
         self.HZ: list[list[int]] = self._rows_to_matrix(_hz_supp, n_base)
-        self.gauges: list[tuple[QuasiProduct | None, QuasiProduct | None]] = (
-            self._build_gauges()
-        )
+        self.gauges: list[tuple[QuasiProduct | None, QuasiProduct | None]] = self._build_gauges()
 
         # Also store gauge matrices GX/GZ directly from gauges (includes one-hot drop gauges)
         # so if there is a dropped qubit, the corresponding one-hot gauge is included in GX/GZ.
@@ -245,9 +235,6 @@ class DefectiveCode:
         self.GX: list[list[int]] = GX_mat
         self.GZ: list[list[int]] = GZ_mat
 
-        print(GX_mat)
-        print(GZ_mat)
-
         # Stabiliser triplets (templates/qubit maps) for all quasis
         self.triplets = self._reify_quasi_templates()
 
@@ -256,6 +243,11 @@ class DefectiveCode:
         # Verify logicals and gauges structure and pairwise (anti)commutation (optional)
         if verify:
             self._verify_logicals_and_gauges()
+
+    @property
+    def k(self) -> int:
+        """Return the number of logical qubits in the defective code."""
+        return len(self.logical_X_rows)
 
     def logical_rows_2n(self) -> tuple[list[list[int]], list[list[int]]]:
         """
@@ -415,23 +407,15 @@ class DefectiveCode:
         # Z products are rows i >= r (over Z-side basis self.z_anti_qs)
         for i in range(self.r, len(self.U)):
             coeffs = self.U[i]
-            members = [
-                self.z_anti_qs[k].label for k, bit in enumerate(coeffs) if bit & 1
-            ]
+            members = [self.z_anti_qs[k].label for k, bit in enumerate(coeffs) if bit & 1]
             if members:
-                products.append(
-                    QuasiProduct(label=f"QpZ_{i}", pauli_type="Z", members=members)
-                )
+                products.append(QuasiProduct(label=f"QpZ_{i}", pauli_type="Z", members=members))
         # X products are rows i >= r in VT (over X-side basis self.x_anti_qs)
         for i in range(self.r, len(self.VT)):
             coeffs = self.VT[i]
-            members = [
-                self.x_anti_qs[k].label for k, bit in enumerate(coeffs) if bit & 1
-            ]
+            members = [self.x_anti_qs[k].label for k, bit in enumerate(coeffs) if bit & 1]
             if members:
-                products.append(
-                    QuasiProduct(label=f"QpX_{i}", pauli_type="X", members=members)
-                )
+                products.append(QuasiProduct(label=f"QpX_{i}", pauli_type="X", members=members))
         return products
 
     def _build_dropped_quasis(self) -> dict[str, QuasiStabiliser]:
@@ -478,9 +462,7 @@ class DefectiveCode:
         # Z gauges are rows i < r from U (Z space)
         for i in range(self.r):
             coeffs = self.U[i]
-            members = [
-                self.z_anti_qs[k].label for k, bit in enumerate(coeffs) if bit & 1
-            ]
+            members = [self.z_anti_qs[k].label for k, bit in enumerate(coeffs) if bit & 1]
             if members:
                 gauges.append(
                     (
@@ -491,9 +473,7 @@ class DefectiveCode:
         # X gauges are rows i < r from VT (X space)
         for i in range(self.r):
             coeffs = self.VT[i]
-            members = [
-                self.x_anti_qs[k].label for k, bit in enumerate(coeffs) if bit & 1
-            ]
+            members = [self.x_anti_qs[k].label for k, bit in enumerate(coeffs) if bit & 1]
             if members:
                 if i < len(gauges) and gauges[i][1] is None:
                     gauges[i] = (
@@ -504,9 +484,7 @@ class DefectiveCode:
                     gauges.append(
                         (
                             None,
-                            QuasiProduct(
-                                label=f"QgX_{i}", pauli_type="X", members=members
-                            ),
+                            QuasiProduct(label=f"QgX_{i}", pauli_type="X", members=members),
                         )
                     )
         # Add one-hot gauge pairs for dropped qubits if not in span of HX/HZ
@@ -518,9 +496,7 @@ class DefectiveCode:
                     ex[q] = 1
                     ez = [0] * n
                     ez[q] = 1
-                    if not gf2_is_in_span(ex, self.HX) and not gf2_is_in_span(
-                        ez, self.HZ
-                    ):
+                    if not gf2_is_in_span(ex, self.HX) and not gf2_is_in_span(ez, self.HZ):
                         # Add as proper member-labelled gauge qubit pair
                         zg = QuasiProduct(
                             label=f"QgZ_drop_{q}",
@@ -564,9 +540,7 @@ class DefectiveCode:
         z_rows: list[list[int]] = []
 
         # Add isolate quasis (labels not present in the anticomm graph after pruning)
-        label_to_quasi: dict[str, QuasiStabiliser] = {
-            q.label: q for q in self.all_quasis
-        }
+        label_to_quasi: dict[str, QuasiStabiliser] = {q.label: q for q in self.all_quasis}
         for label in self.quasi_labels:
             if label in self.nontrivial_idx:
                 continue
@@ -659,13 +633,9 @@ class DefectiveCode:
         rank_SX = gf2_rank(SX)
         rank_SZ = gf2_rank(SZ)
         if rank_SX != len(SX):
-            raise AssertionError(
-                f"SX has dependent rows (rank={rank_SX}, rows={len(SX)})"
-            )
+            raise AssertionError(f"SX has dependent rows (rank={rank_SX}, rows={len(SX)})")
         if rank_SZ != len(SZ):
-            raise AssertionError(
-                f"SZ has dependent rows (rank={rank_SZ}, rows={len(SZ)})"
-            )
+            raise AssertionError(f"SZ has dependent rows (rank={rank_SZ}, rows={len(SZ)})")
 
         # Step 2: RREF (for structure) and nullspaces (no column permutations)
         NZ = gf2_nullspace(SZ)  # X-candidates that commute with SZ
@@ -718,9 +688,7 @@ class DefectiveCode:
         # U, V, r = gf2_bidiagonalize(C)
         # V = np.array(V, dtype=np.int8).tolist()
 
-        def apply_transform(
-            T: list[list[int]], Rows: list[list[int]]
-        ) -> list[list[int]]:
+        def apply_transform(T: list[list[int]], Rows: list[list[int]]) -> list[list[int]]:
             """Apply a GF(2) transformation T to a list of row vectors Rows,
             returning the transformed rows.
             """
@@ -875,9 +843,7 @@ class DefectiveCode:
         num_gauge_pairs_total = len(gauges)
 
         def _is_drop_g(lab: str | None) -> bool:
-            return bool(lab) and (
-                "_drop_" in lab or lab.startswith(("QgX_drop_", "QgZ_drop_"))
-            )
+            return bool(lab) and ("_drop_" in lab or lab.startswith(("QgX_drop_", "QgZ_drop_")))
 
         num_drop_gauge_pairs = 0
         for pair in gauges:
@@ -902,17 +868,23 @@ class DefectiveCode:
             if {int(x) for x in q.support} != parent_supp:
                 num_quasi_changed_supports += 1
         return {
-            "num_quasi": len(self.all_quasis),
-            "num_nontrivial": len(self.nontrivial_idx),
-            "rank": rank,
-            "num_QpZ": num_qpz,
-            "num_QpX": num_qpx,
+            "num_total_qubits": self.base_code.num_qubits,
+            "num_dropped_qubits": len(self.dropped_nodes),
+            "stabiliser_rank": len(self.HX) + len(self.HZ) + num_qpz + num_qpx,
+            "num_logical_qubits": self.k,
+            "num_gauge_qubits": num_drop_gauge_pairs,
+            "num_gauge_operators": len(self.all_quasis),
+            "num_anticommuting_gauge_operators": len(self.nontrivial_idx),
+            "anticomm_matrix_rank": rank,
+            "num_product_stabilisers_Z": num_qpz,
+            "num_product_stabilisers_X": num_qpx,
+            "num_new_gauge_pairs": num_gauge_pairs_total,
             # Extended reporting
-            "num_anticomm_nodes": num_anticomm_nodes,
-            "num_anticomm_edges": num_anticomm_edges,
+            "num_anticomm_graph_nodes": num_anticomm_nodes,
+            "num_anticomm_graph_edges": num_anticomm_edges,
             "num_gauge_pairs_total": num_gauge_pairs_total,
-            "num_drop_gauge_pairs": num_drop_gauge_pairs,
-            "num_quasi_changed_supports": num_quasi_changed_supports,
+            "num_gauge_pairs_from_dropped_qubits": num_drop_gauge_pairs,
+            "num_quasi_with_changed_support": num_quasi_changed_supports,
         }
 
     # Convenience helpers for downstream tools (read-only)
@@ -969,12 +941,8 @@ class DefectiveCode:
             self.prepare_solver()
         assert self.solver is not None
         try:
-            layers = self.solver.create_layers_with_products(
-                num_layers=L, solve_time=solve_time
-            )
-            return SyndromeExtractionCircuit(
-                layers=layers, solve_time=solve_time, L=L, dcode=self
-            )
+            layers = self.solver.create_layers_with_products(num_layers=L, solve_time=solve_time)
+            return SyndromeExtractionCircuit(layers=layers, solve_time=solve_time, L=L, dcode=self)
         except Exception as e:
             from acid.solver.schedule_solver import (
                 SchedulingInfeasibleError,
@@ -1017,8 +985,7 @@ class DefectiveCode:
                 conns.append((int(u), int(v), str(cls)))
             # Mark defective edges across all classes sharing the same undirected pair
             dropped_norm = {
-                (min(int(u), int(v)), max(int(u), int(v)))
-                for (u, v) in self.dropped_edges
+                (min(int(u), int(v)), max(int(u), int(v))) for (u, v) in self.dropped_edges
             }
             for u, v, cls in self.base_code.connection_classes or []:
                 a, b = (int(u), int(v)) if int(u) <= int(v) else (int(v), int(u))
@@ -1036,9 +1003,7 @@ class DefectiveCode:
                     "#8a5cff",
                 ]
                 classes = sorted({cls for _, _, cls in conns})
-                colours = {
-                    cls: palette[i % len(palette)] for i, cls in enumerate(classes)
-                }
+                colours = {cls: palette[i % len(palette)] for i, cls in enumerate(classes)}
             else:
                 colours = colour_map
         else:
@@ -1046,8 +1011,7 @@ class DefectiveCode:
             for u, v in self.connectivity_graph.edges():
                 conns.append((int(u), int(v), "E"))
             dropped_norm = {
-                (min(int(u), int(v)), max(int(u), int(v)))
-                for (u, v) in self.dropped_edges
+                (min(int(u), int(v)), max(int(u), int(v))) for (u, v) in self.dropped_edges
             }
             for u, v in dropped_norm:
                 bad_conns.add((u, v, "E"))
@@ -1065,9 +1029,7 @@ class DefectiveCode:
         # Untouched stabilisers correspond to isolated quasis; use their post-dropout supports.
         if debug:
             print("[viz] base_code stabilisers:", len(list(self.base_code.shapes)))
-        label_to_quasi: dict[str, QuasiStabiliser] = {
-            q.label: q for q in self.all_quasis
-        }
+        label_to_quasi: dict[str, QuasiStabiliser] = {q.label: q for q in self.all_quasis}
         untouched: list[tuple[str, Iterable[int]]] = []
         for label in self.quasi_labels:
             if label in self.nontrivial_idx:
