@@ -155,7 +155,7 @@ class StimBuilder(StimBuilderProtocol):
         layer: SyndromeExtractionLayer,
         *,
         noise: NoiseModel,
-        shift: bool = True,
+        qubit_map: list[int] | None = None,
         dead_qubits: set[int] | None = None,
         dead_connections: set[tuple[int, int]] | None = None,
     ) -> None:
@@ -166,8 +166,9 @@ class StimBuilder(StimBuilderProtocol):
         Args:
             layer: The syndrome extraction layer.
             noise: Noise model applied after each CX step.
-            shift: If True (default), remap qubit IDs using self.offset. If
-                False, qubit IDs are used unchanged.
+            qubit_map: Optional remapping list where qubit_map[q] gives the
+                new physical position of qubit q. If None, qubit IDs are
+                used unchanged.
             dead_qubits: Optional set of qubit IDs that are considered dropped.
             dead_connections: Optional set of (u, v) tuples that are considered dropped.
         """
@@ -177,8 +178,8 @@ class StimBuilder(StimBuilderProtocol):
             dead_connections = set()
         for step in reversed(layer.collect_cx_stim()):
             if step:
-                if shift and self.offset is not None:
-                    pairs = [(self.offset[int(c)], self.offset[int(t)]) for c, t in step]
+                if qubit_map is not None:
+                    pairs = [(qubit_map[int(c)], qubit_map[int(t)]) for c, t in step]
                 else:
                     pairs = [(int(c), int(t)) for c, t in step]
                 for c, t in pairs:
@@ -204,11 +205,10 @@ class StimBuilder(StimBuilderProtocol):
         log: MeasurementLog | None = None,
         round_idx: int | None = None,
         layer_idx: int | None = None,
-        shift: bool = True,
     ) -> None:
         """Measure and reset root qubits of a syndrome extraction layer."""
         self.layer_measure(layer, noise=noise, log=log, round_idx=round_idx, layer_idx=layer_idx)
-        self.layer_reset(layer, noise=noise, shift=shift)
+        self.layer_reset(layer, noise=noise)
 
     def layer_measure(
         self,
@@ -244,7 +244,7 @@ class StimBuilder(StimBuilderProtocol):
         layer: SyndromeExtractionLayer,
         *,
         noise: NoiseModel,
-        shift: bool = True,
+        qubit_map: list[int] | None = None,
     ) -> None:
         """Reset root qubits of a syndrome extraction layer.
 
@@ -253,13 +253,14 @@ class StimBuilder(StimBuilderProtocol):
         Args:
             layer: The syndrome extraction layer.
             noise: Noise model applied after reset.
-            shift: If True (default), remap qubit IDs using self.offset. If
-                False, qubit IDs are used unchanged.
+            qubit_map: Optional remapping list where qubit_map[q] gives the
+                new physical position of qubit q. If None, qubit IDs are
+                used unchanged.
         """
         x_roots, z_roots = layer.roots_by_basis()
-        if shift and self.offset is not None:
-            x_roots = [self.offset[q] for q in x_roots]
-            z_roots = [self.offset[q] for q in z_roots]
+        if qubit_map is not None:
+            x_roots = [qubit_map[q] for q in x_roots]
+            z_roots = [qubit_map[q] for q in z_roots]
         if x_roots:
             self.RX(x_roots)
             noise.apply_after_reset(self, x_roots, basis="X")
@@ -276,14 +277,13 @@ class StimBuilder(StimBuilderProtocol):
         log: MeasurementLog,
         round_idx: int,
         layer_idx: int,
-        shift: bool = True,
     ) -> None:
         """Emit a full syndrome extraction cycle: contract → measure/reset → expand."""
         self.layer_contract(layer, noise=noise)
         self.layer_measure_reset(
-            layer, noise=noise, log=log, round_idx=round_idx, layer_idx=layer_idx, shift=shift
+            layer, noise=noise, log=log, round_idx=round_idx, layer_idx=layer_idx
         )
-        self.layer_expand(layer, noise=noise, shift=shift)
+        self.layer_expand(layer, noise=noise)
 
     def memory_rounds(
         self,
@@ -292,12 +292,11 @@ class StimBuilder(StimBuilderProtocol):
         circuit: SyndromeExtractionCircuit,
         noise: NoiseModel,
         log: MeasurementLog,
-        shift: bool = True,
     ) -> None:
         """Append n memory cycles (contract, measure, reset, expand) to the circuit."""
         for r in range(1, n + 1):
             for t, Lk in enumerate(circuit.layers):
-                self.layer_cycle(Lk, noise=noise, log=log, round_idx=r, layer_idx=t, shift=shift)
+                self.layer_cycle(Lk, noise=noise, log=log, round_idx=r, layer_idx=t)
 
     def swap_routing_layers(
         self,
