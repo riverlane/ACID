@@ -17,9 +17,6 @@ from acid.stim_to_shatter_url import prompt_open_shatter
 from acid.codes.bb import builder_deg5 as deg5
 from acid.codes.bb.builder_hexconn import get_spec
 
-from acid.gf2_utils import gf2_get_generator_coefficients
-
-
 def run(
     distance: int = 3,
     solve_time: float = 60.0,
