@@ -103,6 +103,30 @@ class SquareGridEmbedding(Embedding):
             result.append(self.qubit_coords_to_index(a + da, b + db, c))
         return result
 
+    def shifted_connections(
+        self, connections: list[tuple[int, int]], da: int, db: int
+    ) -> list[tuple[int, int]]:
+        """Return connections shifted by (da, db) on the periodic lattice.
+
+        Each endpoint qubit is shifted by (da, db) modulo the ring dimensions.
+
+        Args:
+            connections: List of (u, v) undirected edges to shift.
+            da: Offset in the first lattice direction (Z_l).
+            db: Offset in the second lattice direction (Z_m).
+
+        Returns:
+            List of shifted (u, v) edges in the same order as the input.
+        """
+        result = []
+        for u, v in connections:
+            au, bu, cu = self.id_to_tuple(u)
+            av, bv, cv = self.id_to_tuple(v)
+            su = self.qubit_coords_to_index(au + da, bu + db, cu)
+            sv = self.qubit_coords_to_index(av + da, bv + db, cv)
+            result.append((su, sv))
+        return result
+
     @property
     def height(self) -> int:
         return self.ring.m
