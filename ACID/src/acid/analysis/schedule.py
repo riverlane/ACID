@@ -22,6 +22,8 @@ def analyze_layers(
       interesting_labels: optional subset of labels to display in 'measured'
 
     Returns a dict with keys: 'per_layer', 'product_completions'.
+    'Per_layer' is a list of dicts with keys: 'measured', 'in_process', 'completed'.
+    'Product_completions' is a dict mapping product_label -> list of completion layers.
     """
     if interesting_labels is None:
         interesting_labels = set()
@@ -37,9 +39,7 @@ def analyze_layers(
         mset = set(all_measured)
         # display-only measured (optional filter)
         if interesting_labels:
-            measured = sorted(
-                [lab for lab in all_measured if lab in interesting_labels]
-            )
+            measured = sorted([lab for lab in all_measured if lab in interesting_labels])
         else:
             measured = []
 
