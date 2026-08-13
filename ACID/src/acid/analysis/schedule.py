@@ -8,7 +8,7 @@ def analyze_layers(
     layers: list[SyndromeExtractionLayer],
     *,
     interesting_labels: set[str] | None = None,
-) -> dict:
+) -> dict[str, object]:
     """
     Generic schedule analysis usable for any code and any schedule:
       - per-layer measured labels (optionally filtered to 'interesting_labels')
@@ -17,11 +17,14 @@ def analyze_layers(
       - per-product completion layers
 
     Args:
-      product_members: mapping product_label -> set(member_labels)
-      layers: list of SyndromeExtractionLayer
-      interesting_labels: optional subset of labels to display in 'measured'
+        product_members: mapping product_label -> set(member_labels)
+        layers: list of SyndromeExtractionLayer
+        interesting_labels: optional subset of labels to display in 'measured'
 
-    Returns a dict with keys: 'per_layer', 'product_completions'.
+    Returns: 
+        dict[str, object]: a dict with keys: 'per_layer', 'product_completions'.
+            'Per_layer' is a list of dicts with keys: 'measured', 'in_process', 'completed'.
+            'Product_completions' is a dict mapping product_label -> list of completion layers.
     """
     if interesting_labels is None:
         interesting_labels = set()
@@ -37,9 +40,7 @@ def analyze_layers(
         mset = set(all_measured)
         # display-only measured (optional filter)
         if interesting_labels:
-            measured = sorted(
-                [lab for lab in all_measured if lab in interesting_labels]
-            )
+            measured = sorted([lab for lab in all_measured if lab in interesting_labels])
         else:
             measured = []
 

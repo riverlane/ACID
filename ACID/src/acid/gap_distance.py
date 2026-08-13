@@ -54,9 +54,7 @@ def compute_nkd_with_gap(
 
     gap_lines: list[str] = []
     gap_lines.append("F := GF(2);")
-    gap_lines.append(
-        'if not LoadPackage("QDistRnd") then Error("QDistRnd package not found"); fi;'
-    )
+    gap_lines.append('if not LoadPackage("QDistRnd") then Error("QDistRnd package not found"); fi;')
     gap_lines.append(f"Hx := {_gap_matrix_literal(Hx)};")
     gap_lines.append(f"Hz := {_gap_matrix_literal(Hz)};")
     # Robust column count even when one side is empty

@@ -61,9 +61,8 @@ def build_code_from_spec(
         use_fx = fx if use_fx is None else use_fx
         use_fy = fy if use_fy is None else use_fy
 
-    bb = BBMidCycle(
-        ring, A, B, homomorphism_f_x=int(use_fx), homomorphism_f_y=int(use_fy)
-    )
+    # TODO: could be a bool since just 1 or 0
+    bb = BBMidCycle(ring, A, B, homomorphism_f_x=int(use_fx), homomorphism_f_y=int(use_fy))
     embedding = SquareGridEmbedding(ring=bb.ring, pitch=1.0)
 
     # For sanity: object stabiliser supports for assert checks (as sets of qubit ids)

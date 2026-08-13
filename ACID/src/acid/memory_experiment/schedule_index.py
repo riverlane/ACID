@@ -79,9 +79,7 @@ class ScheduleIndex:
         return False
 
     # --- Unified anticomm guard across init/final and schedule layers ---
-    def _event_index(
-        self, kind: str, basis: str | None, rt: tuple[int, int] | None, R: int
-    ) -> int:
+    def _event_index(self, kind: str, basis: str | None, rt: tuple[int, int] | None, R: int) -> int:
         """Map an anchor (kind,basis,rt) to a linear event index.
 
         Event order:

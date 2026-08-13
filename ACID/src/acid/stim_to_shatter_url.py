@@ -41,9 +41,7 @@ def prompt_open_shatter(stim_path: str) -> None:
         return
     url = build_shatter_url_from_text(text)
     try:
-        input(
-            "Press enter to open Shatter to visualise the circuit; or ctrl-c to cancel: "
-        )
+        input("Press enter to open Shatter to visualise the circuit; or ctrl-c to cancel: ")
     except KeyboardInterrupt:
         print("\n[cancelled] Not opening Shatter.")
         return

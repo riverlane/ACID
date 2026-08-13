@@ -61,11 +61,7 @@ def prune_schedule_graph(
     for stab in scheduling_graph.nodes():
         lab = stab.label
         tmpl = stab.stabiliser_template
-        pref = {
-            i
-            for i, sch in enumerate(tmpl.schedules)
-            if getattr(sch, "preferred", False)
-        }
+        pref = {i for i, sch in enumerate(tmpl.schedules) if getattr(sch, "preferred", False)}
         preferred_ids[lab] = pref
 
     # Keep sets per label
@@ -86,9 +82,7 @@ def prune_schedule_graph(
         preferred_total += len(pref)
 
     if preferred_total == 0 and verbose:
-        print(
-            "[prune] warning: no preferred schedules marked across the schedule graph"
-        )
+        print("[prune] warning: no preferred schedules marked across the schedule graph")
 
     # Precompute neighbor compatibility maps for scoring
     from collections import defaultdict
@@ -96,17 +90,13 @@ def prune_schedule_graph(
     map_out: dict[object, dict[str, dict[int, set[int]]]] = {}
     map_in: dict[object, dict[str, dict[int, set[int]]]] = {}
 
-    node_by_label: dict[str, object] = {
-        stab.label: stab for stab in scheduling_graph.nodes()
-    }
+    node_by_label: dict[str, object] = {stab.label: stab for stab in scheduling_graph.nodes()}
     it_edges = scheduling_graph.edges(data=True)
     if verbose:
         try:
             from tqdm import tqdm  # type: ignore
 
-            it_edges = tqdm(
-                list(it_edges), desc="[prune] build compat maps", leave=False
-            )
+            it_edges = tqdm(list(it_edges), desc="[prune] build compat maps", leave=False)
         except Exception:
             pass
     for u, v, data in it_edges:
@@ -177,9 +167,7 @@ def prune_schedule_graph(
         allowed = set(data.get("allowed_pairs") or [])
         u_lab = u.label
         v_lab = v.label
-        filt = {
-            (ku, kv) for (ku, kv) in allowed if ku in kept[u_lab] and kv in kept[v_lab]
-        }
+        filt = {(ku, kv) for (ku, kv) in allowed if ku in kept[u_lab] and kv in kept[v_lab]}
         G2.add_edge(u, v, allowed_pairs=filt)
 
     counts_list = [K_by_label[lab] for lab in labels]
@@ -187,9 +175,7 @@ def prune_schedule_graph(
     stats: dict[str, object] = {
         "schedule_counts_by_label": {lab: K_by_label[lab] for lab in labels},
         "schedule_counts_summary": _summary(counts_list),
-        "preferred_count_by_label": {
-            lab: len(preferred_ids.get(lab, set())) for lab in labels
-        },
+        "preferred_count_by_label": {lab: len(preferred_ids.get(lab, set())) for lab in labels},
         "preferred_counts_summary": _summary(preferred_counts),
         "selected_count_by_label": {lab: len(kept[lab]) for lab in labels},
         "params": {"M": int(M)},

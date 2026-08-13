@@ -13,12 +13,8 @@ class MeasurementLog:
     - per_layer: mapping (round_idx, layer_idx, basis) -> {root_qid -> rec}
     """
 
-    init_mpp: dict[str, dict[str, int]] = field(
-        default_factory=lambda: {"X": {}, "Z": {}}
-    )
-    final_mpp: dict[str, dict[str, int]] = field(
-        default_factory=lambda: {"X": {}, "Z": {}}
-    )
+    init_mpp: dict[str, dict[str, int]] = field(default_factory=lambda: {"X": {}, "Z": {}})
+    final_mpp: dict[str, dict[str, int]] = field(default_factory=lambda: {"X": {}, "Z": {}})
     per_layer: dict[tuple[int, int, str], dict[int, int]] = field(default_factory=dict)
 
     def record_init_mpp(self, basis: str, label: str, rec: int) -> None:

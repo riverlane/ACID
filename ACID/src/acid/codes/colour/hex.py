@@ -204,9 +204,7 @@ def build_colour_hex_code(
             edges2 = [(i2, (i2 + 1) % 6) for i2 in range(6)]
             if deg4:
                 edges2.append((1, 4))
-            add_shape(
-                label=f"hex_extraB({x2},{y2})/", nodes_xy=pts2, edges_pairs=edges2
-            )
+            add_shape(label=f"hex_extraB({x2},{y2})/", nodes_xy=pts2, edges_pairs=edges2)
         else:
             # Adjusted placement for d % 4 == 1: (d - 2i - 3, 6i + 4) for i = 0 .. d//4 - 1
             if i <= (d // 4 - 1):
@@ -222,9 +220,7 @@ def build_colour_hex_code(
                 edges2 = [(i2, (i2 + 1) % 6) for i2 in range(6)]
                 if deg4:
                     edges2.append((1, 4))
-                add_shape(
-                    label=f"hex_extraB({x2},{y2})/", nodes_xy=pts2, edges_pairs=edges2
-                )
+                add_shape(label=f"hex_extraB({x2},{y2})/", nodes_xy=pts2, edges_pairs=edges2)
 
     # 2) Left triangles: 4-node path (x,y)->(x+1,y)->(x+1,y+1)->(x+1,y+2)
     lt_max = (d + 1) // 4

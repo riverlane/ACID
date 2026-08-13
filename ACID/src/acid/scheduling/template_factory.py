@@ -25,9 +25,7 @@ class TemplateFactory:
         connectivity_subgraph: nx.Graph,
         SEC_cycle_length: int,
     ) -> tuple:
-        edges = tuple(
-            sorted((min(u, v), max(u, v)) for (u, v) in connectivity_subgraph.edges())
-        )
+        edges = tuple(sorted((min(u, v), max(u, v)) for (u, v) in connectivity_subgraph.edges()))
         return (pauli_type, int(n_qubits), int(SEC_cycle_length), edges)
 
     def get_or_create(

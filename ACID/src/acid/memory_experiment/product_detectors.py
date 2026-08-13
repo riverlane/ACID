@@ -56,18 +56,13 @@ def plan_product_detectors(
         # B0 = init_mpp, intermediate B_i = per-round completion events,
         # BN = final_mpp. Each contract event carries member latest times c_q
         # and A_i (earliest among those latest times).
-        sorted_completion_times = sorted(
-            prod_plan.completions.get(current_product.label, [])
-        )
+        sorted_completion_times = sorted(prod_plan.completions.get(current_product.label, []))
         completions: list[
             tuple[
                 str,  # kind
                 tuple[int, int] | None,  # (round, layer) product completion time
-                dict[
-                    str, tuple[int, int]
-                ],  # member -> most recent (round, layer) contraction time
-                tuple[int, int]
-                | None,  # earliest among those most recent contraction times
+                dict[str, tuple[int, int]],  # member -> most recent (round, layer) contraction time
+                tuple[int, int] | None,  # earliest among those most recent contraction times
             ]
         ] = []
         completions.append(("init_mpp", None, {}, None))
@@ -119,8 +114,7 @@ def plan_product_detectors(
                         print(
                             f"  - B[{idx}] kind=contract B_rt={B_rt} A_rt={earliest_member_time} c_q={{"
                             + ", ".join(
-                                f"{m}:{rt}"
-                                for m, rt in member_to_lastest_time_measured.items()
+                                f"{m}:{rt}" for m, rt in member_to_lastest_time_measured.items()
                             )
                             + "}}"
                         )
@@ -142,12 +136,8 @@ def plan_product_detectors(
                 # previous/next contraction indices
                 prev_rt = cqi.get(m)
                 next_rt = cqi1.get(m)
-                prev_idx = (
-                    -1 if prev_rt is None else _lin_idx(L, prev_rt[0], prev_rt[1])
-                )
-                next_idx = (
-                    R * L if next_rt is None else _lin_idx(L, next_rt[0], next_rt[1])
-                )
+                prev_idx = -1 if prev_rt is None else _lin_idx(L, prev_rt[0], prev_rt[1])
+                next_idx = R * L if next_rt is None else _lin_idx(L, next_rt[0], next_rt[1])
                 if prev_idx < idx <= next_idx:
                     # propagate member mid-cycle Pauli
                     _typ, supp = dcode.quasi_support(m)
@@ -215,9 +205,7 @@ def plan_product_detectors(
 
             # (2) For each layer in the window, add same-basis root recs on the
             # active propagated product support.
-            layer_summaries: list[
-                tuple[int, int, int, int]
-            ] = []  # (r,t, |S|, added_recs)
+            layer_summaries: list[tuple[int, int, int, int]] = []  # (r,t, |S|, added_recs)
             for idx in range(A_lin + 1, min(B_next_lin, R * L) + 1):
                 if idx >= R * L:
                     break
@@ -225,9 +213,7 @@ def plan_product_detectors(
                 t_i = idx % L
                 S = active_support_at(r_i, t_i, cqi, cqi1)
                 root_same = log.per_layer.get((r_i, t_i, basis), {})
-                root_other = log.per_layer.get(
-                    (r_i, t_i, "Z" if basis == "X" else "X"), {}
-                )
+                root_other = log.per_layer.get((r_i, t_i, "Z" if basis == "X" else "X"), {})
                 # Opposite-basis overlap indicates an invalid detector composition.
                 if any((q in root_other) for q in S):
                     bad = [q for q in S if q in root_other]
@@ -288,14 +274,10 @@ def plan_product_detectors(
 @dataclass
 class ProductPlan:
     members: dict[str, set[str]]  # prod_label -> set(member labels)
-    completions: dict[
-        str, list[int]
-    ]  # prod_label -> list of layer indices where completed
+    completions: dict[str, list[int]]  # prod_label -> list of layer indices where completed
 
 
-def build_product_plan(
-    dcode: DefectiveCode, layers: list[SyndromeExtractionLayer]
-) -> ProductPlan:
+def build_product_plan(dcode: DefectiveCode, layers: list[SyndromeExtractionLayer]) -> ProductPlan:
     """
     Use analyze_layers to determine per-layer product completion points.
 

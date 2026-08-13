@@ -66,9 +66,7 @@ def build_toric_code(
             #   1-2: L(q) — R(q)
             #   2-3: R(q) — L(a2 q)
             x_map = [R_b2q, L_q, R_q, L_a2q]
-            shapes.append(
-                StabiliserShape("X", path4, sec_length, x_map, f"X({ax},{ay})")
-            )
+            shapes.append(StabiliserShape("X", path4, sec_length, x_map, f"X({ax},{ay})"))
 
             # Z-stabiliser mapping order (use a2^-1, b2^-1 for connectivity):
             #   0: R(a2^-1 q) = R(y q)
@@ -78,9 +76,7 @@ def build_toric_code(
             R_a2invq = emb.qubit_coords_to_index(*((a2_inv * q).to_coordinate_LR_tuple("R")))
             L_b2invq = emb.qubit_coords_to_index(*((b2_inv * q).to_coordinate_LR_tuple("L")))
             z_map = [R_a2invq, L_q, R_q, L_b2invq]
-            shapes.append(
-                StabiliserShape("Z", path4, sec_length, z_map, f"Z({ax},{ay})")
-            )
+            shapes.append(StabiliserShape("Z", path4, sec_length, z_map, f"Z({ax},{ay})"))
 
             # Connectivity edges per anchor q: from L(q) to R( ... )
             lq = L_q
@@ -89,7 +85,9 @@ def build_toric_code(
             connections.append((lq, R_a2invq, "A2i"))
             if connectivity.lower() in ("grid", "grid4"):
                 # Diagonal: R(a2^-1 b2 q) = R(y x^-1 q)
-                R_a2inv_b2_q = emb.qubit_coords_to_index(*((a2_inv * b2 * q).to_coordinate_LR_tuple("R")))
+                R_a2inv_b2_q = emb.qubit_coords_to_index(
+                    *((a2_inv * b2 * q).to_coordinate_LR_tuple("R"))
+                )
                 connections.append((lq, R_a2inv_b2_q, "A2iB2"))
 
     # Connectivity graph (undirected) ignores classes; edges are added between all pairs in connections

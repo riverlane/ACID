@@ -14,11 +14,6 @@ from acid.memory_experiment.rec_log import MeasurementLog
 from acid.solver.swap import solve_swap_routing, verify_swap_routing
 from acid.stim_to_shatter_url import prompt_open_shatter
 
-from acid.codes.bb import builder_deg5 as deg5
-from acid.codes.bb.builder_hexconn import get_spec
-
-from acid.gf2_utils import gf2_get_generator_coefficients
-
 
 def run(
     distance: int = 3,
@@ -126,7 +121,7 @@ def run(
 
     virtual_dead_qubits = embedding.shifted_positions(list(dropped_nodes), -da, -db)
     virtual_dead_couplers = {
-        (min(u, v), max(u, v)) for u, v in embedding.shifted_connections(dropped_edges, -da, -db)
+        (min(u, v), max(u, v)) for u, v in embedding.get_shifted_connections(dropped_edges, -da, -db)
     }
 
     total_dead_qubits = set(dropped_nodes) | set(virtual_dead_qubits)
@@ -235,11 +230,13 @@ def run(
     # Swap layers
     sb.swap_routing_layers(swap_layers, noise=noise)
 
+    sb.set_offset(new_pos)  # remap qubit IDs to their shifted positions
+
     # Reset roots at their shifted positions, then expand at shifted positions
-    sb.layer_reset(best_layer, noise=noise, qubit_map=new_pos)
+    sb.layer_reset(best_layer, noise=noise)
 
     # Second half: expand with qubit IDs remapped to shifted positions
-    sb.layer_expand(best_layer, noise=noise, qubit_map=new_pos)
+    sb.layer_expand(best_layer, noise=noise)
 
     stim_text = "\n".join(sb.lines) + "\n"
 

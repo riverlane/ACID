@@ -28,9 +28,7 @@ def write_schedule_report(
         try:
             circuit = dcode.schedule(L, solve_time=solve_time)
             layers = circuit.layers
-            result = analyze_layers(
-                prod_members, layers, interesting_labels=interesting
-            )
+            result = analyze_layers(prod_members, layers, interesting_labels=interesting)
             # Per-layer table
             lines.append(
                 "\n| Layer | Measured | In-process | Completed |\n|------:|----------|------------|-----------|\n"

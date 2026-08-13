@@ -149,16 +149,12 @@ class ScheduleSolver:
         # Validate products: labels exist and types match
         for ps in self.product_specs:
             if ps.pauli_type not in ("X", "Z"):
-                raise ValueError(
-                    f"Product {ps.label} has invalid pauli_type: {ps.pauli_type}"
-                )
+                raise ValueError(f"Product {ps.label} has invalid pauli_type: {ps.pauli_type}")
             if not ps.members:
                 raise ValueError(f"Product {ps.label} has no members")
             for m in ps.members:
                 if m not in self.stabilisers:
-                    raise ValueError(
-                        f"Product {ps.label} references unknown stabiliser label: {m}"
-                    )
+                    raise ValueError(f"Product {ps.label} references unknown stabiliser label: {m}")
                 if self.stabilisers[m].pauli_type != ps.pauli_type:
                     raise ValueError(
                         f"Product {ps.label} pauli_type {ps.pauli_type} does not match member {m} type {self.stabilisers[m].pauli_type}"
@@ -200,9 +196,7 @@ class ScheduleSolver:
 
     def get_shape_neighbours(self):
         template_neighbours = set()
-        for stab1_unsorted, stab2_unsorted in itertools.combinations(
-            self.stabilisers.values(), 2
-        ):
+        for stab1_unsorted, stab2_unsorted in itertools.combinations(self.stabilisers.values(), 2):
             stab1, stab2 = sorted(
                 [stab1_unsorted, stab2_unsorted],
                 key=lambda s: (
@@ -292,9 +286,7 @@ class ScheduleSolver:
             try:
                 from tqdm import tqdm  # type: ignore
 
-                it_prog = tqdm(
-                    range(len(it_stabs)), desc="[build] sched graph", leave=False
-                )
+                it_prog = tqdm(range(len(it_stabs)), desc="[build] sched graph", leave=False)
             except Exception:
                 it_prog = None
         else:
@@ -308,11 +300,7 @@ class ScheduleSolver:
                 return 0.0
             s = sorted(vals)
             n = len(s)
-            return (
-                float(s[n // 2])
-                if (n % 2 == 1)
-                else 0.5 * float(s[n // 2 - 1] + s[n // 2])
-            )
+            return float(s[n // 2]) if (n % 2 == 1) else 0.5 * float(s[n // 2 - 1] + s[n // 2])
 
         for stab_1_i_unsorted, stab1_unsorted in enumerate(it_stabs):
             qubit_set1 = stab1_unsorted.qubit_set
@@ -323,9 +311,7 @@ class ScheduleSolver:
             except Exception:
                 pass
             # Only consider each unordered stabiliser pair once.
-            for stab2_unsorted in list(self.stabilisers.values())[
-                stab_1_i_unsorted + 1 :
-            ]:
+            for stab2_unsorted in list(self.stabilisers.values())[stab_1_i_unsorted + 1 :]:
                 overlap = qubit_set1.intersection(stab2_unsorted.qubit_set)
                 # Disjoint stabilisers cannot conflict in the same layer.
                 if not overlap:
@@ -366,9 +352,7 @@ class ScheduleSolver:
                     ns_med = _median(node_sched_counts)
                     ns_max = max(node_sched_counts) if node_sched_counts else 0
                     ea_min = min(edge_allowed_counts) if edge_allowed_counts else 0
-                    ea_med = (
-                        _median(edge_allowed_counts) if edge_allowed_counts else 0.0
-                    )
+                    ea_med = _median(edge_allowed_counts) if edge_allowed_counts else 0.0
                     ea_max = max(edge_allowed_counts) if edge_allowed_counts else 0
                     it_prog.set_postfix(
                         {
@@ -408,22 +392,16 @@ class ScheduleSolver:
         """Builds lookup structures for product membership and opposite-type products per
         stabiliser."""
         # Map product label -> ProductSpec and member Stabiliser objects
-        self.plabel_to_product: dict[str, QuasiProduct] = {
-            p.label: p for p in self.product_specs
-        }
+        self.plabel_to_product: dict[str, QuasiProduct] = {p.label: p for p in self.product_specs}
         # Stabiliser label -> list of product labels of same type containing it
-        self.qstab_to_product: dict[str, list[str]] = {
-            lab: [] for lab in self.stabilisers
-        }
+        self.qstab_to_product: dict[str, list[str]] = {lab: [] for lab in self.stabilisers}
         for p in self.product_specs:
             for m in p.members:
                 self.qstab_to_product[m].append(p.label)
 
         # For each stabiliser label q, collect opposite-type products that contain
         # any anticomm neighbor of q
-        self.opp_products_by_label: dict[str, set[str]] = {
-            lab: set() for lab in self.stabilisers
-        }
+        self.opp_products_by_label: dict[str, set[str]] = {lab: set() for lab in self.stabilisers}
         for u, v in self.anticomm_graph.edges():
             # u-v anticommute; add products of type(v) to u, and type(u) to v
             su, sv = self.stabilisers[u], self.stabilisers[v]
@@ -450,10 +428,7 @@ class ScheduleSolver:
 
         # Optional pruning already applied in prepare_solver
         allowed_ids_by_label: dict[str, list[int]] = {}
-        if (
-            self._prune_allowed_ids_by_label is not None
-            and self._pruned_graph is not None
-        ):
+        if self._prune_allowed_ids_by_label is not None and self._pruned_graph is not None:
             allowed_ids_by_label = {
                 lab: list(ids) for lab, ids in self._prune_allowed_ids_by_label.items()
             }
@@ -490,12 +465,7 @@ class ScheduleSolver:
                 # Schedule hint only if it exists and is kept
                 ds = getattr(stab.stabiliser_template, "schedule_hint_index", None)
                 dl = getattr(stab.stabiliser_template, "layer_hint", None)
-                if (
-                    ds is not None
-                    and dl is not None
-                    and dl == layer_num
-                    and ds in var_map
-                ):
+                if ds is not None and dl is not None and dl == layer_num and ds in var_map:
                     # Hint: prefer this schedule at this layer
                     model.add_hint(var_map[ds], 1)
             assignment[stab.label] = per_layer
@@ -537,19 +507,16 @@ class ScheduleSolver:
         for p in self.product_specs:
             # counters
             product_counters[p.label] = [
-                model.new_int_var(0, num_layers, f"ctr__{p.label}__t{t}")
-                for t in range(num_layers)
+                model.new_int_var(0, num_layers, f"ctr__{p.label}__t{t}") for t in range(num_layers)
             ]
             product_inprogress[p.label] = [
-                model.new_bool_var(f"inprog__{p.label}__t{t}")
-                for t in range(num_layers)
+                model.new_bool_var(f"inprog__{p.label}__t{t}") for t in range(num_layers)
             ]
             # member flags per layer
             flags_for_members: dict[str, list[cp_model.IntVar]] = {}
             for m in p.members:
                 flags_for_members[m] = [
-                    model.new_bool_var(f"flag__{p.label}__{m}__t{t}")
-                    for t in range(num_layers)
+                    model.new_bool_var(f"flag__{p.label}__{m}__t{t}") for t in range(num_layers)
                 ]
             product_flags[p.label] = flags_for_members
             # resets (t>=1); for t=0 use constant 0 via a fixed false bool
@@ -562,9 +529,7 @@ class ScheduleSolver:
                     reset_var = model.new_bool_var(f"reset__{p.label}__t{layer_num}")
                     # r == AND_i f_{i}[t-1]
                     # decompose AND via AddBoolAnd and AndBoolOr
-                    prev_flags = [
-                        flags_for_members[m][layer_num - 1] for m in p.members
-                    ]
+                    prev_flags = [flags_for_members[m][layer_num - 1] for m in p.members]
                     model.add_bool_and(prev_flags).only_enforce_if(reset_var)
                     model.add_bool_or([f.Not() for f in prev_flags]).only_enforce_if(
                         reset_var.Not()
@@ -599,12 +564,8 @@ class ScheduleSolver:
                     not_reset = reset_vars[layer_num].Not()
 
                     # linearisation of OR(f[t-1], measured(m,t)) via inequalities:
-                    model.add(f[layer_num] >= f[layer_num - 1]).only_enforce_if(
-                        not_reset
-                    )
-                    model.add(f[layer_num] >= measured[m][layer_num]).only_enforce_if(
-                        not_reset
-                    )
+                    model.add(f[layer_num] >= f[layer_num - 1]).only_enforce_if(not_reset)
+                    model.add(f[layer_num] >= measured[m][layer_num]).only_enforce_if(not_reset)
                     model.add(
                         f[layer_num] <= f[layer_num - 1] + measured[m][layer_num]
                     ).only_enforce_if(not_reset)
@@ -702,15 +663,11 @@ class ScheduleSolver:
         for layer_num in range(num_layers):
             chosen: dict[Stabiliser, StabiliserSchedule] = {}
             for stab in self.stabilisers.values():
-                var_map = assignment[stab.label][
-                    layer_num
-                ]  # Dict[int(schedule_id) -> IntVar]
+                var_map = assignment[stab.label][layer_num]  # Dict[int(schedule_id) -> IntVar]
                 # iterate actual ids and vars
                 for k_schedule_id, var in var_map.items():
                     if solver.Value(var) == 1:
-                        chosen[stab] = stab.stabiliser_template.schedules[
-                            int(k_schedule_id)
-                        ]
+                        chosen[stab] = stab.stabiliser_template.schedules[int(k_schedule_id)]
                         break
                 # It is valid that a stabiliser is not measured in a given layer (<=1 per layer and sum across layers >=1)
             layers.append(SyndromeExtractionLayer(chosen=chosen, code=self))

@@ -44,9 +44,7 @@ def main() -> int:
         type=str,
         help="Optional JSON file defining additional commuting bases",
     )
-    ap.add_argument(
-        "--ticks", type=int, default=0, help="How many TICKs to step (0=all)"
-    )
+    ap.add_argument("--ticks", type=int, default=0, help="How many TICKs to step (0=all)")
     args = ap.parse_args()
 
     circ = stim.Circuit(Path(args.stim_file).read_text())

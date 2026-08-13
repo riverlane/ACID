@@ -140,9 +140,7 @@ class StabiliserSchedule:
         # Pauli-frame compatibility checks across each timestep.
         pf_1 = self.pauli_frames
         pf_2 = other.pauli_frames
-        for ops_1, ops_2, pf_1_t, pf_2_t in zip(
-            filtered_ops_1, filtered_ops_2, pf_1, pf_2
-        ):
+        for ops_1, ops_2, pf_1_t, pf_2_t in zip(filtered_ops_1, filtered_ops_2, pf_1, pf_2):
             # Validate schedule-1 ops against schedule-2 frame state.
             for a1, b1 in ops_1:
                 if a1 in shared_qubits_in_self and b1 in shared_qubits_in_self:
@@ -154,10 +152,7 @@ class StabiliserSchedule:
                         self_to_other_qubits[b_flip_1],
                     ) in ops_2:
                         continue
-                if (
-                    b1 in shared_qubits_in_self
-                    and pf_2_t[self_to_other_qubits[b1]] == 1
-                ):
+                if b1 in shared_qubits_in_self and pf_2_t[self_to_other_qubits[b1]] == 1:
                     return False
 
             # Validate schedule-2 ops against schedule-1 frame state.
@@ -171,10 +166,7 @@ class StabiliserSchedule:
                         other_to_self_qubits[b_flip_2],
                     ) in ops_1:
                         continue
-                if (
-                    b2 in shared_qubits_in_other
-                    and pf_1_t[other_to_self_qubits[b2]] == 1
-                ):
+                if b2 in shared_qubits_in_other and pf_1_t[other_to_self_qubits[b2]] == 1:
                     return False
 
                 # No shared-qubit or frame conflicts found.
@@ -211,9 +203,7 @@ class StabiliserTemplate:
         self.schedule_hint_index = self.find_schedule_hint_index(schedule_hint)
         self.layer_hint = layer_hint
         if (self.schedule_hint_index is None) != (self.layer_hint is None):
-            raise ValueError(
-                "Both schedule_hint and layer_hint must be provided together."
-            )
+            raise ValueError("Both schedule_hint and layer_hint must be provided together.")
 
     def make_schedules(self, SEC_cycle_length: int):
         schedules = []
@@ -225,9 +215,7 @@ class StabiliserTemplate:
                 from tqdm import tqdm  # type: ignore
 
                 iter_src = list(
-                    enumerate_all_schedules(
-                        self.connectivity_subgraph, SEC_cycle_length
-                    )
+                    enumerate_all_schedules(self.connectivity_subgraph, SEC_cycle_length)
                 )
                 iterator = enumerate(iter_src)
                 pbar = tqdm(
@@ -238,9 +226,7 @@ class StabiliserTemplate:
                 use_pbar = True
             except Exception:
                 iterator = enumerate(
-                    enumerate_all_schedules(
-                        self.connectivity_subgraph, SEC_cycle_length
-                    )
+                    enumerate_all_schedules(self.connectivity_subgraph, SEC_cycle_length)
                 )
                 pbar = None
                 use_pbar = False
@@ -252,20 +238,12 @@ class StabiliserTemplate:
             use_pbar = False
 
         for i, schedule in iterator:
-            sched = StabiliserSchedule(
-                i, SEC_cycle_length, schedule.root, schedule.steps, self
-            )
+            sched = StabiliserSchedule(i, SEC_cycle_length, schedule.root, schedule.steps, self)
             # Mark preferred according to preferred_roots/edges rules
             # If no preferences are provided (both preferred_roots is None and preferred_edges empty/None),
             # then no schedules are preferred.
-            has_any_pref = (self.preferred_roots is not None) or bool(
-                self.preferred_edges
-            )
-            root_ok = (
-                True
-                if self.preferred_roots is None
-                else (sched.root in self.preferred_roots)
-            )
+            has_any_pref = (self.preferred_roots is not None) or bool(self.preferred_edges)
+            root_ok = True if self.preferred_roots is None else (sched.root in self.preferred_roots)
             edges_ok = True
             time_ok = True
             if self.preferred_edges:
@@ -275,9 +253,7 @@ class StabiliserTemplate:
                     for a, b in ops:
                         e = (a, b) if a <= b else (b, a)
                         used[e] = t
-                pref_keys = {
-                    (u, v) if u <= v else (v, u) for (u, v) in self.preferred_edges
-                }
+                pref_keys = {(u, v) if u <= v else (v, u) for (u, v) in self.preferred_edges}
                 used_keys = set(used.keys())
                 # Only allowed edges may be used
                 if not used_keys.issubset(pref_keys):
@@ -285,11 +261,7 @@ class StabiliserTemplate:
                 # For edges with time constraints, require usage at allowed times
                 if edges_ok:
                     for e_raw, times in self.preferred_edges.items():
-                        e = (
-                            (e_raw[0], e_raw[1])
-                            if e_raw[0] <= e_raw[1]
-                            else (e_raw[1], e_raw[0])
-                        )
+                        e = (e_raw[0], e_raw[1]) if e_raw[0] <= e_raw[1] else (e_raw[1], e_raw[0])
                         if times is not None:
                             # Must be used and at an allowed timestep
                             t_used = used.get(e, None)
@@ -303,9 +275,7 @@ class StabiliserTemplate:
         if pbar is not None:
             pbar.close()
         if len(schedules) == 0:
-            raise ValueError(
-                f"No valid schedules found for stabiliser template {self.name}"
-            )
+            raise ValueError(f"No valid schedules found for stabiliser template {self.name}")
         return schedules
 
     def make_stabiliser(self, qubits: list[int], label: str) -> Stabiliser:
@@ -320,9 +290,7 @@ class StabiliserTemplate:
         for i, schedule in enumerate(self.schedules):
             if default_schedule_sorted == [sorted(step) for step in schedule.ops]:
                 return i
-        raise ValueError(
-            "Provided schedule_hint does not match any enumerated schedule."
-        )
+        raise ValueError("Provided schedule_hint does not match any enumerated schedule.")
 
     def __hash__(self):
         return self.template_id
@@ -352,9 +320,7 @@ class SyndromeExtractionLayer:
         }
 
     def collect_CNOTS(self) -> list[list[tuple[int, int]]]:
-        all_CNOTS: list[set[tuple[int, int]]] = [
-            set() for _ in range(self.cycle_length)
-        ]
+        all_CNOTS: list[set[tuple[int, int]]] = [set() for _ in range(self.cycle_length)]
         for t in range(self.cycle_length):
             used_qubits = set()
             for stab, schedule in self.chosen.items():
@@ -419,9 +385,7 @@ class SyndromeExtractionLayer:
                             else:
                                 support.add(control)
                 z_rows.append(sorted(support))
-        kept_qubits = [
-            q for q in range(self.code.num_qubits) if q not in excluded_roots
-        ]
+        kept_qubits = [q for q in range(self.code.num_qubits) if q not in excluded_roots]
         return x_rows, z_rows, kept_qubits
 
     def endcycle_parity_check_matrix(self) -> dict:
