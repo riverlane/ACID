@@ -103,7 +103,7 @@ class SquareGridEmbedding(Embedding):
             result.append(self.qubit_coords_to_index(a + da, b + db, c))
         return result
 
-    def shifted_connections(
+    def get_shifted_connections(
         self, connections: list[tuple[int, int]], da: int, db: int
     ) -> list[tuple[int, int]]:
         """Return connections shifted by (da, db) on the periodic lattice.
