@@ -190,6 +190,7 @@ class SyndromeExtractionCircuit:
                     self.stabilisers = stab_map
                     self.num_qubits = int(n)
 
+                # TODO: why get_attr?
             code_for_layer = _StubCode(stab_by_label, getattr(dcode.base_code, "num_qubits", 0))  # type: ignore[attr-defined]
 
         layers_out: list[SyndromeExtractionLayer] = []
