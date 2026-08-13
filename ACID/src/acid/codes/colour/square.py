@@ -31,6 +31,7 @@ def in_bounds_square(d: int, x: int, y: int) -> bool:
     return (lhs1 <= rhs1) and (lhs1 <= rhs2) and (y >= 0)
 
 
+#TODO: type alias
 def _add_cartesian_connectivity(G: nx.Graph, coords: dict[tuple[int, int], int], d: int) -> None:
     # Four-neighbour connectivity (N,S,E,W) within bounds
     for (x, y), q in coords.items():
@@ -116,6 +117,8 @@ def build_colour_square_code(d: int) -> tuple[BaseCode, dict[tuple[int, int], in
                 # schedule_hint = [[], [] , [] , [(1,0)]]  # (1,0) means CNOT controlled on 0 targeting 1
                 # layer_hint 1 for X, layer_hint 0 for Z
                 # Inner stabs: preferred roots as before, plus a preferred edge (L-R) at timestep 3
+
+                # TODO: is None different from {}?
                 pref_edges_inner: dict[tuple[int, int], list[int] | None] = {(0, 1): [3]}
                 shapes.append(
                     StabiliserShape(
