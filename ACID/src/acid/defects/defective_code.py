@@ -124,7 +124,7 @@ class DefectiveCode:
     ) -> None:
         self.base_code = code
         self.dropped_nodes: set[int] = {int(q) for q in dropped_nodes}
-        self.dropped_edges: list[tuple[int, int]] = [(int(u), int(v)) for (u, v) in dropped_edges]
+        self.dropped_edges = [(int(u), int(v)) for (u, v) in dropped_edges]
         self.num_qubits = self.base_code.num_qubits - len(self.dropped_nodes)
         self.solver = None  # type: ScheduleSolver | None
 
@@ -177,7 +177,7 @@ class DefectiveCode:
         # stabiliser matrices
         self.HX: list[list[int]] = self._rows_to_matrix(_hx_supp, n_base)
         self.HZ: list[list[int]] = self._rows_to_matrix(_hz_supp, n_base)
-        self.gauges: list[tuple[QuasiProduct | None, QuasiProduct | None]] = self._build_gauges()
+        self.gauges = self._build_gauges()
 
         # Also store gauge matrices GX/GZ directly from gauges (includes one-hot drop gauges)
         # so if there is a dropped qubit, the corresponding one-hot gauge is included in GX/GZ.
@@ -842,6 +842,7 @@ class DefectiveCode:
         gauges = getattr(self, "gauges", []) or []
         num_gauge_pairs_total = len(gauges)
 
+        # TODO: why bool(lab) is needed?
         def _is_drop_g(lab: str | None) -> bool:
             return bool(lab) and ("_drop_" in lab or lab.startswith(("QgX_drop_", "QgZ_drop_")))
 
@@ -985,7 +986,7 @@ class DefectiveCode:
                 conns.append((int(u), int(v), str(cls)))
             # Mark defective edges across all classes sharing the same undirected pair
             dropped_norm = {
-                (min(int(u), int(v)), max(int(u), int(v))) for (u, v) in self.dropped_edges
+                tuple(sorted(edge)) for edge in self.dropped_edges
             }
             for u, v, cls in self.base_code.connection_classes or []:
                 a, b = (int(u), int(v)) if int(u) <= int(v) else (int(v), int(u))
