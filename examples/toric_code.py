@@ -121,7 +121,7 @@ def run(
 
     virtual_dead_qubits = embedding.shifted_positions(list(dropped_nodes), -da, -db)
     virtual_dead_couplers = {
-        (min(u, v), max(u, v)) for u, v in embedding.shifted_connections(dropped_edges, -da, -db)
+        (min(u, v), max(u, v)) for u, v in embedding.get_shifted_connections(dropped_edges, -da, -db)
     }
 
     total_dead_qubits = set(dropped_nodes) | set(virtual_dead_qubits)
