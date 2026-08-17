@@ -172,12 +172,20 @@ class DefectiveCode:
         self._compute_diag_from_anticomm()
         self.products: list[QuasiProduct] = self._build_products()
         # Store base stabiliser matrices HX/HZ at base width n for reuse
-        _hx_supp, _hz_supp = self._stabiliser_supports()
+        _hx_supp, _hz_supp, _hx_dep_rows, _hz_dep_rows, _hx_src, _hz_src, _hx_dep, _hz_dep = (
+            self._stabiliser_supports()
+        )
         n_base = self.base_code.num_qubits
         # stabiliser matrices
         self.HX: list[list[int]] = self._rows_to_matrix(_hx_supp, n_base)
         self.HZ: list[list[int]] = self._rows_to_matrix(_hz_supp, n_base)
-        self.gauges = self._build_gauges()
+        self.HX_dep: list[list[int]] = self._rows_to_matrix(_hx_dep_rows, n_base)
+        self.HZ_dep: list[list[int]] = self._rows_to_matrix(_hz_dep_rows, n_base)
+        self.HX_sources: list[QuasiStabiliser | QuasiProduct] = _hx_src
+        self.HZ_sources: list[QuasiStabiliser | QuasiProduct] = _hz_src
+        self.HX_dependent: list[QuasiStabiliser | QuasiProduct] = _hx_dep
+        self.HZ_dependent: list[QuasiStabiliser | QuasiProduct] = _hz_dep
+        self.gauges: list[tuple[QuasiProduct | None, QuasiProduct | None]] = self._build_gauges()
 
         # Also store gauge matrices GX/GZ directly from gauges (includes one-hot drop gauges)
         # so if there is a dropped qubit, the corresponding one-hot gauge is included in GX/GZ.
@@ -528,16 +536,27 @@ class DefectiveCode:
         # X coefficients as rows of V^T
         self.VT = [list(row) for row in zip(*V)] if V else []
 
-    def _stabiliser_supports(self) -> tuple[list[list[int]], list[list[int]]]:
-        """Return (X_rows, Z_rows) stabiliser supports (as lists of qubit ids).
+    def _stabiliser_supports(
+        self,
+    ) -> tuple[
+        list[list[int]],
+        list[list[int]],
+        list[list[int]],
+        list[list[int]],
+        list[QuasiStabiliser | QuasiProduct],  # x_dep_rows
+        list[QuasiStabiliser | QuasiProduct],  # z_dep_rows
+        list[QuasiStabiliser | QuasiProduct],  # x_sources
+        list[QuasiStabiliser | QuasiProduct],  # z_sources
+    ]:
+        """Return (x_rows, z_rows, x_dep_rows, z_dep_rows, x_sources, z_sources, x_dependent, z_dependent).
 
-        Uses isolate quasi-stabilisers (post-dropout components that do not
-        participate in the anti-commutation graph) and product stabilisers
-        inferred from the anticommutation graph diagonalisation. This ensures
-        supports reflect post-dropout connectivity (e.g., boundary 4->3).
+        x_sources[i]/z_sources[i] is the QuasiStabiliser or QuasiProduct for row i.
+        x_dependent/z_dependent are stabilisers dropped as linearly dependent.
         """
         x_rows: list[list[int]] = []
         z_rows: list[list[int]] = []
+        x_sources: list[QuasiStabiliser | QuasiProduct] = []
+        z_sources: list[QuasiStabiliser | QuasiProduct] = []
 
         # Add isolate quasis (labels not present in the anticomm graph after pruning)
         label_to_quasi: dict[str, QuasiStabiliser] = {q.label: q for q in self.all_quasis}
@@ -552,8 +571,10 @@ class DefectiveCode:
                 continue
             if q.pauli_type == "X":
                 x_rows.append(supp)
+                x_sources.append(q)
             else:
                 z_rows.append(supp)
+                z_sources.append(q)
 
         # Add product stabilisers derived from quasis
         def xor_supports_labels(members: list[str]) -> list[int]:
@@ -572,30 +593,57 @@ class DefectiveCode:
                 continue
             if ps.pauli_type == "X":
                 x_rows.append(supp)
+                x_sources.append(ps)
             else:
                 z_rows.append(supp)
+                z_sources.append(ps)
 
         # Reduce to independent sets to avoid dependent SX/SZ
         # SX is [HX; GX] and SZ is [HZ; GZ]; we want to avoid dependent rows in either.
-        def reduce_independent(rows: list[list[int]], n: int) -> list[list[int]]:
+        def reduce_independent(
+            rows: list[list[int]],
+            sources: list[QuasiStabiliser | QuasiProduct],
+            n: int,
+        ) -> tuple[
+            list[list[int]],
+            list[QuasiStabiliser | QuasiProduct],
+            list[list[int]],
+            list[QuasiStabiliser | QuasiProduct],
+        ]:
             M: list[list[int]] = []
-            keep: list[list[int]] = []
+            kept_rows: list[list[int]] = []
+            kept_sources: list[QuasiStabiliser | QuasiProduct] = []
+            dropped_rows: list[list[int]] = []
+            dropped_sources: list[QuasiStabiliser | QuasiProduct] = []
             r = 0
-            for supp in rows:
+            for supp, src in zip(rows, sources):
                 vec = [0] * n
                 for q in supp:
                     if 0 <= int(q) < n:
                         vec[int(q)] ^= 1
                 if gf2_rank(M + [vec]) > r:
                     M.append(vec)
-                    keep.append(supp)
+                    kept_rows.append(supp)
+                    kept_sources.append(src)
                     r += 1
-            return keep
+                else:
+                    dropped_rows.append(supp)
+                    dropped_sources.append(src)
+            return kept_rows, kept_sources, dropped_rows, dropped_sources
 
         n = self.base_code.num_qubits
-        x_rows = reduce_independent(x_rows, n)
-        z_rows = reduce_independent(z_rows, n)
-        return x_rows, z_rows
+        x_rows, x_sources, x_dep_rows, x_dependent = reduce_independent(x_rows, x_sources, n)
+        z_rows, z_sources, z_dep_rows, z_dependent = reduce_independent(z_rows, z_sources, n)
+        return (
+            x_rows,
+            z_rows,
+            x_dep_rows,
+            z_dep_rows,
+            x_sources,
+            z_sources,
+            x_dependent,
+            z_dependent,
+        )
 
     def _rows_to_matrix(self, rows: list[list[int]], n: int) -> list[list[int]]:
         M: list[list[int]] = []
@@ -756,7 +804,7 @@ class DefectiveCode:
         Gz = rows_from_Z(Gz_ps)
 
         # Stabiliser supports (X and Z) from the code (including products)
-        stab_x_supp, stab_z_supp = self._stabiliser_supports()
+        stab_x_supp, stab_z_supp, *_ = self._stabiliser_supports()
         Sx = self._rows_to_matrix(stab_x_supp, n)
         Sz = self._rows_to_matrix(stab_z_supp, n)
 
@@ -868,24 +916,22 @@ class DefectiveCode:
                 parent_supp = set()
             if {int(x) for x in q.support} != parent_supp:
                 num_quasi_changed_supports += 1
+
         return {
-            "num_total_qubits": self.base_code.num_qubits,
-            "num_dropped_qubits": len(self.dropped_nodes),
-            "stabiliser_rank": len(self.HX) + len(self.HZ) + num_qpz + num_qpx,
-            "num_logical_qubits": self.k,
-            "num_gauge_qubits": num_drop_gauge_pairs,
-            "num_gauge_operators": len(self.all_quasis),
-            "num_anticommuting_gauge_operators": len(self.nontrivial_idx),
-            "anticomm_matrix_rank": rank,
-            "num_product_stabilisers_Z": num_qpz,
-            "num_product_stabilisers_X": num_qpx,
-            "num_new_gauge_pairs": num_gauge_pairs_total,
+            "num_quasi": len(self.all_quasis),
+            "num_nontrivial": len(self.nontrivial_idx),
+            "rank": rank,
+            "num_QpZ": num_qpz,
+            "num_QpX": num_qpx,
+            "stabiliser_rank": len(self.HX) + len(self.HZ),
+            "logical_pairs": len(self.logical_X_rows),
+            "overcomplete_stabiliser": len(self.HX_dep) + len(self.HZ_dep),
             # Extended reporting
-            "num_anticomm_graph_nodes": num_anticomm_nodes,
-            "num_anticomm_graph_edges": num_anticomm_edges,
+            "num_anticomm_nodes": num_anticomm_nodes,
+            "num_anticomm_edges": num_anticomm_edges,
             "num_gauge_pairs_total": num_gauge_pairs_total,
-            "num_gauge_pairs_from_dropped_qubits": num_drop_gauge_pairs,
-            "num_quasi_with_changed_support": num_quasi_changed_supports,
+            "num_drop_gauge_pairs": num_drop_gauge_pairs,
+            "num_quasi_changed_supports": num_quasi_changed_supports,
         }
 
     # Convenience helpers for downstream tools (read-only)
