@@ -62,8 +62,8 @@ def plan_quasi_detectors(
         # Contracting events across rounds
         events: list[tuple[str, object]] = []
         events.append(("init", None))
-        rt_list = sched.rounds_for_label(lab, R)
-        for r, t in rt_list:
+        quasi_round_layer = sched.rounds_for_label(lab, R)
+        for r, t in quasi_round_layer:
             events.append(("contract", (r, t)))
         events.append(("final", None))
 
