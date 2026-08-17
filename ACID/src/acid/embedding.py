@@ -83,7 +83,7 @@ class SquareGridEmbedding(Embedding):
         i = self.qubit_coords_to_index(g.a, g.b, c)
         return i, self.coords(g.a, g.b, c)
 
-    def shifted_positions(self, qubits: list[int], da: int, db: int) -> list[int]:
+    def get_shifted_positions(self, qubits: list[int], da: int, db: int) -> list[int]:
         """Return qubit indices shifted by (da, db) on the periodic lattice.
 
         Each qubit's (a, b, c) coordinate is offset by (da, db) modulo the ring
