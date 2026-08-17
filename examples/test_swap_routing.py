@@ -104,7 +104,7 @@ def _compute_target(
     N = embedding.num_qubits
     da, db = offset
     live = sorted(set(range(N)) - dead_positions - dont_care)
-    shifted = embedding.shifted_positions(live, da, db)
+    shifted = embedding.get_shifted_positions(live, da, db)
     target: dict[int, int] = {}
     for q, dest in zip(live, shifted):
         assert dest not in dead_positions, f"Qubit {q} is shifted to position {dest} which is dead"
