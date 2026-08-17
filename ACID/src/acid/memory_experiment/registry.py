@@ -6,7 +6,7 @@ from .single_detectors import DetectorInfo
 
 
 @dataclass
-class DetectorRegistry:
+class MemoryDetectorRegistry:
     detectors: list[DetectorInfo] = field(default_factory=list)
     by_quasi: dict[str, list[int]] = field(default_factory=dict)
     by_product: dict[str, list[int]] = field(default_factory=dict)
