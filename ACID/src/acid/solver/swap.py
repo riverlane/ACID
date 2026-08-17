@@ -69,13 +69,12 @@ def solve_swap_routing(
     # Compute target only for live positions that we care about.
     live = set(range(N)) - dead_positions - root_qubits
     all_qubits = sorted(live)
-    shifted = embedding.shifted_positions(all_qubits, da, db)
+    shifted = embedding.get_shifted_positions(all_qubits, da, db)
     # target[dest] = q means qubit q must end up at position dest.
     # Destination cannot be a dead qubit because dead qubits cannot move so it would be invalid.
     target: dict[int, int] = {}
     for q, dest in zip(all_qubits, shifted):
         if dest in dead_positions:
-            print(dead_positions)
             msg = f"Qubit {q} is shifted to position {dest} which is dead"
             raise ValueError(msg)
         target[dest] = q
@@ -132,13 +131,12 @@ def solve_swap_routing(
         elif status == cp_model.UNKNOWN:
             print(
                 f"CP-SAT solver returned UNKNOWN for {num_layers} layers. This means "
-                f"the solver hit the time limit without proving infeasibility."
+                f"the solver hit the time limit without proving infeasibility. "
                 "No further layers will be attempted as higher number of layers will "
                 "almost certainly be unknown. Please increase the time limit or reduce the "
                 "number of layers."
             )
             break
-        print(f"No solution found with {num_layers} layers, trying {num_layers + 1} layers...")
     return None
 
 
@@ -300,6 +298,15 @@ def _create_swap_and_source_variables(
     return swap, src
 
 
+class PrintTimeOfSolution(cp_model.CpSolverSolutionCallback):
+    def __init__(self):
+        super().__init__()
+        self.start_time = time()
+
+    def on_solution_callback(self):
+        print(f"Solution found at {time() - self.start_time:.2f}")
+
+
 def _solve_for_layers(
     N: int,
     edges: list[tuple[int, int]],
@@ -383,7 +390,7 @@ def _solve_for_layers(
     model.add_decision_strategy(all_swaps, cp_model.CHOOSE_FIRST, cp_model.SELECT_MIN_VALUE)
 
     start_time = time()
-    status = solver.solve(model)
+    status = solver.solve(model, PrintTimeOfSolution())
     print(f"CP-SAT solver finished in {time() - start_time:.2f}s with status {status}")
     if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         result: list[list[tuple[int, int]]] = []
@@ -394,8 +401,4 @@ def _solve_for_layers(
                     layer_result.append((a, b))
             result.append(layer_result)
         return result, status
-    if status == cp_model.INFEASIBLE:
-        print(f"CP-SAT solver reports INFEASIBLE for {num_layers} layers")
-    else:
-        print(f"CP-SAT solver reports status {status} for {num_layers} layers")
     return None, status
