@@ -12,7 +12,7 @@ from acid.memory_experiment.noise import NoiseModel, NoNoiseModel
 from .observables import plan_observables
 from .product_detectors import plan_product_detectors
 from .rec_log import MeasurementLog
-from .registry import DetectorRegistry
+from .registry import MemoryDetectorRegistry
 from .schedule_index import ScheduleIndex
 from .single_detectors import plan_quasi_detectors
 
@@ -47,7 +47,7 @@ class MemoryExperiment:
         self.k = min(len(Lx), len(Lz))
 
         self.L = len(self.circuit.layers)
-        self.registry = DetectorRegistry()
+        self.registry = MemoryDetectorRegistry()
 
     def _root_qubits_by_basis(self, layer) -> tuple[list[int], list[int]]:
         return layer.roots_by_basis()
