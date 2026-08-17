@@ -305,14 +305,20 @@ def gf2_get_generator_coefficients(
     n = len(G[0])
     if any(len(row) != n for row in v):
         raise ValueError("Dimension mismatch in gf2_get_generator_coefficients")
-    # Augment [G | I_m; v | 0] so row ops on G are tracked in the identity block
-    augmented = [G[i][:] + [1 if j == i else 0 for j in range(m)] for i in range(m)]
-    augmented += [row[:] + [0] * m for row in v]
-    rref, _ = gf2_rref_rowwise(augmented)
+    # RREF G alone so v rows never get swapped into G positions.
+    aug = [G[i][:] + [1 if j == i else 0 for j in range(m)] for i in range(m)]
+    rref_G, pivots = gf2_rref_rowwise(aug)
+    pivot_map: dict[int, int] = {c: r for r, c in enumerate(pivots)}
+    # Reduce each v row against the G basis and collect coefficients.
     coefficients = []
-    for i in range(len(v)):
-        row = rref[m + i]
-        if any(row[j] for j in range(n)):  # non-zero in data block → not in span
+    for v_row in v:
+        row = v_row[:] + [0] * m
+        for c in range(n):
+            if (row[c] & 1) and c in pivot_map:
+                r_idx = pivot_map[c]
+                for k in range(n + m):
+                    row[k] ^= rref_G[r_idx][k]
+        if any(row[j] for j in range(n)):  # non-zero residual → not in span
             return None
-        coefficients.append(row[n:])  # coefficient block
+        coefficients.append(row[n:])
     return coefficients
