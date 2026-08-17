@@ -119,7 +119,7 @@ def run(
 
     da, db = swap_offset
 
-    virtual_dead_qubits = embedding.shifted_positions(list(dropped_nodes), -da, -db)
+    virtual_dead_qubits = embedding.get_shifted_positions(list(dropped_nodes), -da, -db)
     virtual_dead_couplers = {
         (min(u, v), max(u, v)) for u, v in embedding.get_shifted_connections(dropped_edges, -da, -db)
     }
@@ -192,7 +192,7 @@ def run(
             print(f"    Layer {t}: {len(sl)} swap(s)")
         # Build the same target the solver used, then verify
         live = set(range(embedding.num_qubits)) - dead_pos - dont_care
-        shifted = embedding.shifted_positions(sorted(live), *swap_offset)
+        shifted = embedding.get_shifted_positions(sorted(live), *swap_offset)
         swap_target = {
             dest: q
             for q, dest in zip(sorted(live), shifted)
@@ -208,7 +208,7 @@ def run(
     # Map each qubit to its shifted position directly from the embedding.
     da, db = swap_offset
     N = embedding.num_qubits
-    new_pos = embedding.shifted_positions(list(range(N)), da, db)
+    new_pos = embedding.get_shifted_positions(list(range(N)), da, db)
 
     # Build stim circuit: first half → measure/reset roots → swaps → shifted second half
     overlay = original_dcode.visualisation_stim(embedding)
